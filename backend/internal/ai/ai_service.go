@@ -5,18 +5,21 @@ import (
 
 	"go-daily/internal/models"
 	"go-daily/internal/repository"
+	"go-daily/internal/service"
 )
 
 // AIService orchestrates AI analysis features.
 type AIService struct {
 	repo       *repository.RecordRepository
+	configSvc  *service.ConfigService
 	riskEngine *RiskEngine
 }
 
 // NewAIService creates a new AIService instance.
-func NewAIService(repo *repository.RecordRepository) *AIService {
+func NewAIService(repo *repository.RecordRepository, configSvc *service.ConfigService) *AIService {
 	return &AIService{
 		repo:       repo,
+		configSvc:  configSvc,
 		riskEngine: NewRiskEngine(),
 	}
 }
@@ -41,13 +44,23 @@ func (s *AIService) GetSummary() (*SummaryResult, error) {
 }
 
 // GetContext returns a ContextResult for LLM prompt building.
-// It fetches the last 7 days of records and computes trends.
-// PatientProfile name defaults to "母亲" if config is not available.
-// Conditions default to ["透析", "心衰", "EF35%"].
+// It fetches the last 7 days of records, reads patient profile from settings, and computes trends.
 func (s *AIService) GetContext() (*ContextResult, error) {
 	records, err := s.repo.ListRecent(7)
 	if err != nil {
 		return nil, err
+	}
+
+	// Read patient profile from settings
+	profile := PatientProfile{
+		Name:      "母亲",
+		BasicInfo: "",
+	}
+	if settings, err := s.configSvc.GetSettings(); err == nil {
+		if settings.PatientName != "" {
+			profile.Name = settings.PatientName
+		}
+		profile.BasicInfo = settings.BasicInfo
 	}
 
 	// Sort by date ascending for trend analysis
@@ -77,11 +90,8 @@ func (s *AIService) GetContext() (*ContextResult, error) {
 	sleepTrend := s.riskEngine.AnalyzeTrend(sorted, SleepValues, func(r *models.DailyRecord) string { return r.SleepPosition })
 
 	return &ContextResult{
-		PatientProfile: PatientProfile{
-			Name:       "母亲",
-			Conditions: []string{"透析", "心衰", "EF35%"},
-		},
-		RecentRecords: recentRecords,
+		PatientProfile: profile,
+		RecentRecords:  recentRecords,
 		TrendAnalysis: TrendAnalysis{
 			Breathing:     breathingTrend,
 			Appetite:      appetiteTrend,

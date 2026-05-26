@@ -62,8 +62,8 @@ type ContextResult struct {
 
 // PatientProfile holds basic patient information.
 type PatientProfile struct {
-	Name       string   `json:"name"`
-	Conditions []string `json:"conditions"`
+	Name      string `json:"name"`
+	BasicInfo string `json:"basic_info"`
 }
 
 // RecordSummary is a condensed view of a single record for display.
@@ -250,18 +250,44 @@ func (e *RiskEngine) AnalyzeTrend(records []models.DailyRecord, valueMap map[str
 // Returns whether pre-dialysis is worsening and post-dialysis is improving.
 func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnalysis {
 	result := DialysisAnalysis{Types: []string{}}
-	var scores []int
 	typeSet := map[string]bool{}
+	type dayScore struct {
+		date  string
+		score int
+	}
+	dayScores := []dayScore{}
+	seenDates := map[string]bool{}
 
 	for _, r := range records {
 		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
 			continue
 		}
-		result.DialysisDaysCount++
+		if !seenDates[r.Date] {
+			result.DialysisDaysCount++
+			seenDates[r.Date] = true
+		}
 		typeSet[r.DialysisPhase] = true
-		// Composite health score: higher = worse
+	}
+
+	// Build one composite score per dialysis day (prefer morning record)
+	dayMap := map[string]models.DailyRecord{}
+	for _, r := range records {
+		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
+			continue
+		}
+		if _, ok := dayMap[r.Date]; !ok || r.Period == "morning" {
+			dayMap[r.Date] = r
+		}
+	}
+	dates := make([]string, 0, len(seenDates))
+	for date := range seenDates {
+		dates = append(dates, date)
+	}
+	sort.Strings(dates)
+	for _, date := range dates {
+		r := dayMap[date]
 		score := AppetiteValues[r.AppetiteStatus] + BreathingValues[r.BreathingStatus] + SleepValues[r.SleepPosition]
-		scores = append(scores, score)
+		dayScores = append(dayScores, dayScore{date: date, score: score})
 	}
 
 	for t := range typeSet {
@@ -269,7 +295,7 @@ func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnaly
 	}
 
 	// Improving if the latest dialysis day score is lower than the earliest
-	if len(scores) >= 2 && scores[len(scores)-1] < scores[0] {
+	if len(dayScores) >= 2 && dayScores[len(dayScores)-1].score < dayScores[0].score {
 		result.Improving = true
 	}
 

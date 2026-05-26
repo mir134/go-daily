@@ -8,11 +8,33 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts'
-import { format, subDays } from 'date-fns'
+import { format, subDays, addDays, getDay } from 'date-fns'
 import type { DailyRecord, RiskAlert } from '../types'
 import { getRecords, getAlerts } from '../api/client'
 import Card from '../components/Card'
+import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
+
+
+const dialysisPhaseMap: Record<string, string> = {
+  non_dialysis: '非透析日',
+  hemodialysis: '血透',
+  perfusion: '灌流',
+  hemofiltration: '血滤',
+}
+
+const overallEmoji: Record<string, string> = {
+  good: '🙂',
+  normal: '😐',
+  uncomfortable: '😟',
+  severe: '🚨',
+}
+const overallLabels: Record<string, string> = {
+  good: '好',
+  normal: '一般',
+  uncomfortable: '不舒服',
+  severe: '严重',
+}
 
 const appetiteMap: Record<string, number> = { good: 1, little: 2, none: 3 }
 const appetiteLabels: Record<string, string> = { good: '吃得好', little: '吃一点', none: '吃不下' }
@@ -25,6 +47,7 @@ const vomitLabels: Record<string, string> = { none: '没有', nausea: '恶心', 
 
 const sleepMap: Record<string, number> = { can: 1, half: 2, cannot: 3 }
 const sleepLabels: Record<string, string> = { can: '能', half: '半躺', cannot: '不能' }
+const mentalLabels: Record<string, string> = { chatty: '能聊天', listless: '没精神', sleepy: '嗜睡' }
 
 interface CombinedPoint {
   date: string
@@ -78,6 +101,7 @@ export default function TrendsPage() {
   const [records, setRecords] = useState<DailyRecord[]>([])
   const [alerts, setAlerts] = useState<RiskAlert[]>([])
   const [loading, setLoading] = useState(true)
+  const [dayModal, setDayModal] = useState<{ date: string; morning?: DailyRecord; evening?: DailyRecord } | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -218,6 +242,75 @@ export default function TrendsPage() {
     )
   }
 
+  const calendarDays = useMemo(() => {
+    const end = new Date()
+
+    let start: Date
+    if (dateRange === 7) {
+      const dayOfWeek = end.getDay()
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+      start = addDays(end, mondayOffset)
+    } else {
+      start = subDays(end, dateRange - 1)
+    }
+
+    const recordMap = new Map<string, { morning?: DailyRecord; evening?: DailyRecord }>()
+    for (const r of filteredRecords) {
+      const g = recordMap.get(r.date) ?? {}
+      if (r.period === 'morning') g.morning = r
+      else g.evening = r
+      recordMap.set(r.date, g)
+    }
+
+    const days: { date: string; day: number; isToday: boolean; record?: { morning?: DailyRecord; evening?: DailyRecord } }[] = []
+    for (let i = 0; i < dateRange; i++) {
+      const d = addDays(start, i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      days.push({
+        date: dateStr,
+        day: d.getDate(),
+        isToday: dateStr === format(end, 'yyyy-MM-dd'),
+        record: recordMap.get(dateStr),
+      })
+    }
+    return days
+  }, [filteredRecords, dateRange])
+
+  function CalendarCell({ day }: { day: { date: string; day: number; isToday: boolean; record?: { morning?: DailyRecord; evening?: DailyRecord } } }) {
+    const emoji = day.record?.morning
+      ? overallEmoji[day.record.morning.overall_status] || ''
+      : day.record?.evening
+        ? overallEmoji[day.record.evening.overall_status] || ''
+        : ''
+    const dialysisLabel = day.record?.morning?.dialysis_phase && day.record.morning.dialysis_phase !== 'non_dialysis'
+      ? dialysisPhaseMap[day.record.morning.dialysis_phase] || ''
+      : day.record?.evening?.dialysis_phase && day.record.evening.dialysis_phase !== 'non_dialysis'
+        ? dialysisPhaseMap[day.record.evening.dialysis_phase] || ''
+        : ''
+    return (
+      <button
+        type="button"
+        onClick={() => day.record && setDayModal({ date: day.date, ...day.record })}
+        disabled={!day.record}
+        className={`flex flex-col items-center justify-center rounded-lg p-1 min-h-[52px] text-xs transition-colors ${
+          day.record ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600' : 'cursor-default'
+        } ${
+          day.isToday
+            ? 'ring-2 ring-primary dark:ring-primary-light bg-primary/5 dark:bg-primary/10'
+            : day.record
+              ? 'bg-gray-50 dark:bg-slate-700/50'
+              : 'bg-gray-100/50 dark:bg-slate-800/30'
+        }`}
+      >
+        <span className={`font-bold text-sm ${day.isToday ? 'text-primary dark:text-primary-light' : 'text-gray-500 dark:text-slate-400'}`}>
+          {day.day}
+        </span>
+        {emoji && <span className="text-base leading-none">{emoji}</span>}
+        {dialysisLabel && <span className="text-[10px] text-red-500 dark:text-red-400 font-medium leading-tight">{dialysisLabel}</span>}
+      </button>
+    )
+  }
+
   if (loading) return <LoadingSpinner size="lg" />
 
   return (
@@ -240,6 +333,37 @@ export default function TrendsPage() {
           ))}
         </div>
       </div>
+
+      <Card title={dateRange === 7 ? '本周概览' : dateRange === 30 ? '本月概览' : '近期概览'}>
+        {dateRange === 7 ? (
+          <div className="grid grid-cols-7 gap-1">
+            {['一', '二', '三', '四', '五', '六', '日'].map((w) => (
+              <div key={w} className="text-center text-xs font-medium text-gray-400 dark:text-slate-500 pb-1">{w}</div>
+            ))}
+            {calendarDays.map((day) => (
+              <CalendarCell key={day.date} day={day} />
+            ))}
+          </div>
+        ) : (
+          (() => {
+            const end = new Date()
+            const start = subDays(end, dateRange - 1)
+            const padding = (getDay(start) + 6) % 7
+            const cells: React.ReactNode[] = []
+            const weekdayHeaders = ['一', '二', '三', '四', '五', '六', '日']
+            for (const w of weekdayHeaders) {
+              cells.push(<div key={`h-${w}`} className="text-center text-xs font-medium text-gray-400 dark:text-slate-500 pb-1">{w}</div>)
+            }
+            for (let i = 0; i < padding; i++) {
+              cells.push(<div key={`pad-${i}`} />)
+            }
+            for (const day of calendarDays) {
+              cells.push(<CalendarCell key={day.date} day={day} />)
+            }
+            return <div className="grid grid-cols-7 gap-1">{cells}</div>
+          })()
+        )}
+      </Card>
 
       <Card title="食欲趋势">
         {renderLineChart(appetiteData, '#10b981', '#f59e0b', [
@@ -295,6 +419,47 @@ export default function TrendsPage() {
           </div>
         )}
       </div>
+
+      {dayModal && (
+        <Modal
+          isOpen={!!dayModal}
+          onClose={() => setDayModal(null)}
+          title={`记录详情 - ${dayModal.date}`}
+        >
+          <div className="space-y-4 text-gray-800 dark:text-slate-200">
+            {dayModal.morning && (
+              <div>
+                <h3 className="text-base font-bold text-emerald-600 dark:text-emerald-400 mb-2">🌅 早上</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div><span className="text-gray-500 dark:text-slate-400">整体</span><p className="font-medium">{overallEmoji[dayModal.morning.overall_status] || ''} {overallLabels[dayModal.morning.overall_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">呼吸</span><p className="font-medium">{breathingLabels[dayModal.morning.breathing_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">食欲</span><p className="font-medium">{appetiteLabels[dayModal.morning.appetite_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">精神</span><p className="font-medium">{mentalLabels[dayModal.morning.mental_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">透析</span><p className="font-medium">{dialysisPhaseMap[dayModal.morning.dialysis_phase] || '无'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">血压</span><p className="font-medium">{dayModal.morning.blood_pressure || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">血糖</span><p className="font-medium">{dayModal.morning.blood_sugar != null ? `${dayModal.morning.blood_sugar} mmol/L` : '未填写'}</p></div>
+                  {dayModal.morning.notes && <div className="col-span-2"><span className="text-gray-500 dark:text-slate-400">备注</span><p className="font-medium">{dayModal.morning.notes}</p></div>}
+                </div>
+              </div>
+            )}
+            {dayModal.evening && (
+              <div className={dayModal.morning ? 'border-t border-gray-200 dark:border-slate-600 pt-4' : ''}>
+                <h3 className="text-base font-bold text-amber-600 dark:text-amber-400 mb-2">🌙 晚上</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div><span className="text-gray-500 dark:text-slate-400">整体</span><p className="font-medium">{overallEmoji[dayModal.evening.overall_status] || ''} {overallLabels[dayModal.evening.overall_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">呼吸</span><p className="font-medium">{breathingLabels[dayModal.evening.breathing_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">食欲</span><p className="font-medium">{appetiteLabels[dayModal.evening.appetite_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">精神</span><p className="font-medium">{mentalLabels[dayModal.evening.mental_status] || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">透析</span><p className="font-medium">{dialysisPhaseMap[dayModal.evening.dialysis_phase] || '无'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">血压</span><p className="font-medium">{dayModal.evening.blood_pressure || '未填写'}</p></div>
+                  <div><span className="text-gray-500 dark:text-slate-400">血糖</span><p className="font-medium">{dayModal.evening.blood_sugar != null ? `${dayModal.evening.blood_sugar} mmol/L` : '未填写'}</p></div>
+                  {dayModal.evening.notes && <div className="col-span-2"><span className="text-gray-500 dark:text-slate-400">备注</span><p className="font-medium">{dayModal.evening.notes}</p></div>}
+                </div>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -58,7 +58,7 @@ func main() {
 	configSvc := service.NewConfigService(configRepo)
 	authSvc := auth.NewAuthService(cfg.App.Password)
 
-	aiSvc := ai.NewAIService(recordRepo)
+	aiSvc := ai.NewAIService(recordRepo, configSvc)
 	aiHandler := ai.NewAIHandler(aiSvc)
 
 	recordHandler := handler.NewRecordHandler(recordSvc)

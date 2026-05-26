@@ -28,6 +28,7 @@ export interface DailyRecord {
 
 export interface AppSettings {
   patient_name: string
+  basic_info: string
   dialysis_enabled: boolean
   dry_weight: string
 }

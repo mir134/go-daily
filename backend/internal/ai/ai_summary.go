@@ -295,25 +295,31 @@ func describeTrend(sorted []models.DailyRecord, valueMap map[string]int,
 
 // analyzeDialysisSection builds dialysis analysis text.
 func analyzeDialysisSection(sorted []models.DailyRecord) string {
-	var dialysisRecords []models.DailyRecord
+	// Collect unique dialysis days
+	typeSet := map[string]bool{}
+	dialysisDays := map[string]models.DailyRecord{}
 	for _, r := range sorted {
-		if r.DialysisPhase != models.DialysisPhaseNonDialysis && r.DialysisPhase != "" {
-			dialysisRecords = append(dialysisRecords, r)
+		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
+			continue
+		}
+		typeSet[r.DialysisPhase] = true
+		if _, ok := dialysisDays[r.Date]; !ok || r.Period == "morning" {
+			dialysisDays[r.Date] = r
 		}
 	}
 
 	var b strings.Builder
 
-	if len(dialysisRecords) == 0 {
+	if len(dialysisDays) == 0 {
 		b.WriteString("近期无透析记录。\n")
 		return b.String()
 	}
 
-	b.WriteString(fmt.Sprintf("透析天数: %d天\n", len(dialysisRecords)))
+	b.WriteString(fmt.Sprintf("透析天数: %d天\n", len(dialysisDays)))
 
-	// Dialysis type distribution
+	// Dialysis type distribution (count unique days per type)
 	typeCount := map[string]int{}
-	for _, r := range dialysisRecords {
+	for _, r := range dialysisDays {
 		typeCount[r.DialysisPhase]++
 	}
 	if len(typeCount) > 0 {
@@ -323,7 +329,13 @@ func analyzeDialysisSection(sorted []models.DailyRecord) string {
 		}
 	}
 
-	if len(dialysisRecords) >= 2 {
+	if len(dialysisDays) >= 2 {
+		dialysisRecords := make([]models.DailyRecord, 0, len(dialysisDays))
+		for _, r := range dialysisDays {
+			dialysisRecords = append(dialysisRecords, r)
+		}
+		sort.Slice(dialysisRecords, func(i, j int) bool { return dialysisRecords[i].Date < dialysisRecords[j].Date })
+
 		b.WriteString("- 透析日状态: ")
 		b.WriteString(describeTrend(dialysisRecords, AppetiteValues, func(r *models.DailyRecord) string {
 			return r.AppetiteStatus

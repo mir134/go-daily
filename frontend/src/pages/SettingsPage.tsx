@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const { logout } = useAuth()
 
   const [patientName, setPatientName] = useState('')
+  const [basicInfo, setBasicInfo] = useState('')
   const [dialysisEnabled, setDialysisEnabled] = useState(false)
   const [dryWeight, setDryWeight] = useState('')
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   useEffect(() => {
     getSettings().then((s) => {
       setPatientName(s.patient_name)
+      setBasicInfo(s.basic_info)
       setDialysisEnabled(s.dialysis_enabled)
       setDryWeight(s.dry_weight)
     })
@@ -28,6 +30,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     const settings: AppSettings = {
       patient_name: patientName,
+      basic_info: basicInfo,
       dialysis_enabled: dialysisEnabled,
       dry_weight: dryWeight,
     }
@@ -63,20 +66,27 @@ export default function SettingsPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">设置</h1>
 
-      <Card title="患者信息" className="mb-4">
+      <Card title="记录者信息" className="mb-4">
         <label className="block text-sm font-medium text-text-secondary dark:!text-slate-400 mb-1">
-          患者姓名
+          记录者姓名
         </label>
         <input
           type="text"
           value={patientName}
           onChange={(e) => setPatientName(e.target.value)}
-          placeholder="请输入患者姓名"
+          placeholder="请输入记录者姓名"
           className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all"
         />
-        <p className="text-xs text-text-secondary dark:!text-slate-400 mt-2">
-          姓名仅保存在本地，暂不会上传至服务器
-        </p>
+        <label className="block text-sm font-medium text-text-secondary dark:!text-slate-400 mb-1 mt-4">
+          基本信息
+        </label>
+        <textarea
+          rows={4}
+          value={basicInfo}
+          onChange={(e) => setBasicInfo(e.target.value)}
+          placeholder="年龄、性别、病史等"
+          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all resize-none"
+        />
       </Card>
 
       <Card title="透析设置" className="mb-4">
