@@ -1,7 +1,10 @@
-<#
+﻿<#
 .SYNOPSIS
-  在 Windows 11 上使用 Docker 打包适用于 Ubuntu 的 go-daily 二进制
+   在 Windows 11 上使用 Docker 打包适用于 Ubuntu 的 go-daily 二进制
 #>
+
+# 设置 UTF-8 编码，避免中文乱码
+$OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::UTF8
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 
