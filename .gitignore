@@ -6,3 +6,4 @@ backend/data/
 *.exe
 .DS_Store
 Thumbs.db
+.playwright-mcp/
