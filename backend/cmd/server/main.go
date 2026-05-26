@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"go-daily/internal/ai"
 	"go-daily/internal/auth"
 	"go-daily/internal/config"
 	"go-daily/internal/database"
@@ -53,6 +54,9 @@ func main() {
 	recordSvc := service.NewRecordService(recordRepo)
 	authSvc := auth.NewAuthService(cfg.App.Password)
 
+	aiSvc := ai.NewAIService(recordRepo)
+	aiHandler := ai.NewAIHandler(aiSvc)
+
 	recordHandler := handler.NewRecordHandler(recordSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 
@@ -81,6 +85,10 @@ func main() {
 		api.PUT("/records/:id", recordHandler.UpdateRecord)
 		api.DELETE("/records/:id", recordHandler.DeleteRecord)
 		api.GET("/alerts", recordHandler.CheckAlerts)
+		// AI analysis routes
+		api.GET("/ai/summary", aiHandler.GetSummary)
+		api.GET("/ai/context", aiHandler.GetContext)
+		api.GET("/ai/risk-score", aiHandler.GetRiskScore)
 	}
 
 	// Serve embedded frontend with SPA fallback
