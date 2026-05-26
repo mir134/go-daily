@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { DailyRecord, RiskAlert } from '../types'
+import type { DailyRecord, RiskAlert, SummaryResult, ContextResult, RiskScoreResult } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -109,5 +109,22 @@ export async function getAlerts(): Promise<RiskAlert[]> {
 
 export async function getHealth(): Promise<{ status: string }> {
   const res = await api.get('/health')
+  return res.data.data
+}
+
+// ─── AI Analysis ────────────────────────────────────────────────────────────────
+
+export async function getAISummary(): Promise<SummaryResult> {
+  const res = await api.get('/ai/summary')
+  return res.data.data
+}
+
+export async function getAIContext(): Promise<ContextResult> {
+  const res = await api.get('/ai/context')
+  return res.data.data
+}
+
+export async function getAIRiskScore(): Promise<RiskScoreResult> {
+  const res = await api.get('/ai/risk-score')
   return res.data.data
 }

@@ -50,3 +50,65 @@ export interface PaginatedResponse<T> {
   page: number
   page_size: number
 }
+
+// ─── AI Analysis Types ──────────────────────────────────────────────────────────
+
+export interface RiskFactor {
+  name: string
+  score: number
+}
+
+export interface RiskScoreResult {
+  risk_score: number
+  risk_level: string
+  factors: RiskFactor[]
+}
+
+export interface PatientStatus {
+  overall_trend: string
+  risk_level: string
+  key_changes: string[]
+}
+
+export interface DialysisAnalysis {
+  pre_dialysis_worse: boolean
+  post_dialysis_improved: boolean
+}
+
+export interface NutritionAnalysis {
+  appetite_trend: string
+}
+
+export interface SummaryResult {
+  patient_status: PatientStatus
+  dialysis_analysis: DialysisAnalysis
+  nutrition_analysis: NutritionAnalysis
+  warning_signals: string[]
+}
+
+export interface PatientProfile {
+  name: string
+  conditions: string[]
+}
+
+export interface RecordSummary {
+  date: string
+  overall_status: string
+  breathing_status: string
+  appetite_status: string
+  vomit_status: string
+  dialysis_phase: string
+  notes: string
+}
+
+export interface TrendAnalysis {
+  breathing: string
+  appetite: string
+  sleep_position: string
+}
+
+export interface ContextResult {
+  patient_profile: PatientProfile
+  recent_records: RecordSummary[]
+  trend_analysis: TrendAnalysis
+}
