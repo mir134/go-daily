@@ -7,7 +7,7 @@ export default defineConfig({
   base: './',
   plugins: [react(), tailwindcss()],
   build: {
-    outDir: 'dist',
+    outDir: '../backend/internal/embed/frontend/dist',
     assetsInlineLimit: 0,
   },
   server: {

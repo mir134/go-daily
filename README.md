@@ -43,6 +43,10 @@ make build          # 构建当前平台
 make build-win      # 构建 Windows AMD64
 make build-linux    # 构建 Linux AMD64
 make build-all      # 构建所有平台
+
+# cmd 命令
+
+$env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o ../dist/app.exe ./cmd/server/
 ```
 
 ## 技术栈
