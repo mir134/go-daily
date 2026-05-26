@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { DailyRecord, RiskAlert, SummaryResult, ContextResult, RiskScoreResult } from '../types'
+import type { DailyRecord, RiskAlert, SummaryResult, ContextResult, RiskScoreResult, AppSettings } from '../types'
 
 const api = axios.create({
   baseURL: '/api',
@@ -103,6 +103,17 @@ export async function exportRecords(format: string): Promise<Blob> {
 export async function getAlerts(): Promise<RiskAlert[]> {
   const res = await api.get('/alerts')
   return res.data.data ?? []
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export async function getSettings(): Promise<AppSettings> {
+  const res = await api.get('/settings')
+  return res.data.data
+}
+
+export async function saveSettings(settings: AppSettings): Promise<void> {
+  await api.put('/settings', settings)
 }
 
 // ─── Health ────────────────────────────────────────────────────────────────────

@@ -41,10 +41,11 @@ type PatientStatus struct {
 	KeyChanges   []string `json:"key_changes"`
 }
 
-// DialysisAnalysis captures whether pre-dialysis is worsening and post-dialysis improving.
+// DialysisAnalysis captures dialysis treatment analysis.
 type DialysisAnalysis struct {
-	PreDialysisWorse     bool `json:"pre_dialysis_worse"`
-	PostDialysisImproved bool `json:"post_dialysis_improved"`
+	DialysisDaysCount int      `json:"dialysis_days_count"`
+	Types             []string `json:"types"`
+	Improving         bool     `json:"improving"`
 }
 
 // NutritionAnalysis tracks the appetite trend over time.
@@ -248,30 +249,28 @@ func (e *RiskEngine) AnalyzeTrend(records []models.DailyRecord, valueMap map[str
 // AnalyzeDialysis compares pre/post dialysis status across records.
 // Returns whether pre-dialysis is worsening and post-dialysis is improving.
 func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnalysis {
-	result := DialysisAnalysis{}
-	var preScores, postScores []int
+	result := DialysisAnalysis{Types: []string{}}
+	var scores []int
+	typeSet := map[string]bool{}
 
 	for _, r := range records {
-		if !r.IsDialysisDay {
+		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
 			continue
 		}
+		result.DialysisDaysCount++
+		typeSet[r.DialysisPhase] = true
 		// Composite health score: higher = worse
 		score := AppetiteValues[r.AppetiteStatus] + BreathingValues[r.BreathingStatus] + SleepValues[r.SleepPosition]
-		switch r.DialysisPhase {
-		case models.DialysisPhasePre:
-			preScores = append(preScores, score)
-		case models.DialysisPhasePost:
-			postScores = append(postScores, score)
-		}
+		scores = append(scores, score)
 	}
 
-	// Pre-dialysis is worsening if the latest score is higher than the earliest
-	if len(preScores) >= 2 && preScores[len(preScores)-1] > preScores[0] {
-		result.PreDialysisWorse = true
+	for t := range typeSet {
+		result.Types = append(result.Types, t)
 	}
-	// Post-dialysis is improving if the latest score is lower than the earliest
-	if len(postScores) >= 2 && postScores[len(postScores)-1] < postScores[0] {
-		result.PostDialysisImproved = true
+
+	// Improving if the latest dialysis day score is lower than the earliest
+	if len(scores) >= 2 && scores[len(scores)-1] < scores[0] {
+		result.Improving = true
 	}
 
 	return result

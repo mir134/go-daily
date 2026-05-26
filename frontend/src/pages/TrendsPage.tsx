@@ -170,7 +170,7 @@ export default function TrendsPage() {
 
   const weightData: CombinedPoint[] = useMemo(
     () => toCombinedWeight(
-      filteredRecords.filter((r) => r.is_dialysis_day && r.pre_weight != null),
+      filteredRecords.filter((r) => r.pre_weight != null),
       'pre_weight',
     ),
     [filteredRecords],

@@ -26,8 +26,8 @@ func ExportCSV(records []models.DailyRecord) ([]byte, error) {
 	// Write header
 	headers := []string{
 		"日期", "时段", "整体状态", "呼吸状态", "平躺能力", "食欲", "呕吐",
-		"精神状态", "情绪状态", "是否透析", "透析阶段",
-		"透析前体重", "透析后体重", "脱水量", "血压", "血氧",
+		"精神状态", "情绪状态", 		"是否透析", "透析类型",
+		"透析前体重", "透析后体重", "脱水量", "血压", "血氧", "血糖",
 		"黑便", "吐血", "备注",
 	}
 	if err := writer.Write(headers); err != nil {
@@ -52,6 +52,7 @@ func ExportCSV(records []models.DailyRecord) ([]byte, error) {
 			formatFloat64Ptr(r.UltrafiltrationVolume),
 			r.BloodPressure,
 			formatIntPtr(r.OxygenSaturation),
+			formatFloat64Ptr(r.BloodSugar),
 			mapBool(r.HasBlackStool),
 			mapBool(r.HasBloodVomiting),
 			r.Notes,
@@ -166,12 +167,14 @@ func mapEmotionStatus(s string) string {
 
 func mapDialysisPhase(s string) string {
 	switch s {
-	case models.DialysisPhasePre:
-		return "透析前"
-	case models.DialysisPhasePost:
-		return "透析后"
 	case models.DialysisPhaseNonDialysis:
 		return "非透析日"
+	case models.DialysisPhaseHemodialysis:
+		return "血透"
+	case models.DialysisPhasePerfusion:
+		return "灌流"
+	case models.DialysisPhaseHemofiltration:
+		return "血滤"
 	default:
 		return s
 	}

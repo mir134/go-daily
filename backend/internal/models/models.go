@@ -45,9 +45,10 @@ const (
 	EmotionStatusQuarrel = "quarrel"
 
 	// DialysisPhase
-	DialysisPhasePre        = "pre"
-	DialysisPhasePost       = "post"
-	DialysisPhaseNonDialysis = "non_dialysis"
+	DialysisPhaseNonDialysis     = "non_dialysis"
+	DialysisPhaseHemodialysis    = "hemodialysis"
+	DialysisPhasePerfusion       = "perfusion"
+	DialysisPhaseHemofiltration   = "hemofiltration"
 
 	// Period
 	PeriodMorning = "morning"
@@ -73,6 +74,7 @@ type DailyRecord struct {
 	UltrafiltrationVolume *float64 `json:"ultrafiltration_volume"`
 	BloodPressure        string    `gorm:"size:20" json:"blood_pressure"`
 	OxygenSaturation     *int      `json:"oxygen_saturation"`
+	BloodSugar           *float64  `json:"blood_sugar"`
 	HasBlackStool        bool      `json:"has_black_stool"`
 	HasBloodVomiting     bool      `json:"has_blood_vomiting"`
 	Notes                string    `gorm:"size:500" json:"notes"`

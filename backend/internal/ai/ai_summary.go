@@ -164,12 +164,14 @@ func vomitLabelCN(s string) string {
 
 func phaseLabelCN(s string) string {
 	switch s {
-	case models.DialysisPhasePre:
-		return "透析前"
-	case models.DialysisPhasePost:
-		return "透析后"
 	case models.DialysisPhaseNonDialysis:
 		return "非透析日"
+	case models.DialysisPhaseHemodialysis:
+		return "血透"
+	case models.DialysisPhasePerfusion:
+		return "灌流"
+	case models.DialysisPhaseHemofiltration:
+		return "血滤"
 	default:
 		return s
 	}
@@ -293,58 +295,40 @@ func describeTrend(sorted []models.DailyRecord, valueMap map[string]int,
 
 // analyzeDialysisSection builds dialysis analysis text.
 func analyzeDialysisSection(sorted []models.DailyRecord) string {
-	var preRecords, postRecords []models.DailyRecord
+	var dialysisRecords []models.DailyRecord
 	for _, r := range sorted {
-		if r.IsDialysisDay {
-			switch r.DialysisPhase {
-			case models.DialysisPhasePre:
-				preRecords = append(preRecords, r)
-			case models.DialysisPhasePost:
-				postRecords = append(postRecords, r)
-			}
+		if r.DialysisPhase != models.DialysisPhaseNonDialysis && r.DialysisPhase != "" {
+			dialysisRecords = append(dialysisRecords, r)
 		}
 	}
 
 	var b strings.Builder
 
-	if len(preRecords) == 0 && len(postRecords) == 0 {
+	if len(dialysisRecords) == 0 {
 		b.WriteString("近期无透析记录。\n")
 		return b.String()
 	}
 
-	b.WriteString(fmt.Sprintf("透析日数: %d天\n", len(preRecords)+len(postRecords)))
+	b.WriteString(fmt.Sprintf("透析天数: %d天\n", len(dialysisRecords)))
 
-	if len(preRecords) >= 2 {
-		b.WriteString("- 透析前状态: ")
-		b.WriteString(describeTrend(preRecords, AppetiteValues, func(r *models.DailyRecord) string {
-			return r.AppetiteStatus
-		}, appetiteLabelCN))
-		b.WriteString("\n")
+	// Dialysis type distribution
+	typeCount := map[string]int{}
+	for _, r := range dialysisRecords {
+		typeCount[r.DialysisPhase]++
 	}
-
-	if len(postRecords) >= 2 {
-		b.WriteString("- 透析后恢复: ")
-		b.WriteString(describeTrend(postRecords, AppetiteValues, func(r *models.DailyRecord) string {
-			return r.AppetiteStatus
-		}, appetiteLabelCN))
-		b.WriteString("\n")
-	}
-
-	// Compare latest pre vs post
-	if len(preRecords) > 0 && len(postRecords) > 0 {
-		latestPre := preRecords[len(preRecords)-1]
-		latestPost := postRecords[len(postRecords)-1]
-		// Use a simple composite score
-		preScore := AppetiteValues[latestPre.AppetiteStatus] + BreathingValues[latestPre.BreathingStatus] + SleepValues[latestPre.SleepPosition]
-		postScore := AppetiteValues[latestPost.AppetiteStatus] + BreathingValues[latestPost.BreathingStatus] + SleepValues[latestPost.SleepPosition]
-
-		if postScore < preScore {
-			b.WriteString("- 透析后状态有改善 ✓\n")
-		} else if postScore > preScore {
-			b.WriteString("- 透析后状态无改善或加重 ⚠\n")
-		} else {
-			b.WriteString("- 透析前后状态无明显变化\n")
+	if len(typeCount) > 0 {
+		b.WriteString("透析类型分布:\n")
+		for phase, count := range typeCount {
+			b.WriteString(fmt.Sprintf("  - %s: %d天\n", phaseLabelCN(phase), count))
 		}
+	}
+
+	if len(dialysisRecords) >= 2 {
+		b.WriteString("- 透析日状态: ")
+		b.WriteString(describeTrend(dialysisRecords, AppetiteValues, func(r *models.DailyRecord) string {
+			return r.AppetiteStatus
+		}, appetiteLabelCN))
+		b.WriteString("\n")
 	}
 
 	return b.String()

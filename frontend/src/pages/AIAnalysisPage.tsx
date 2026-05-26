@@ -23,6 +23,13 @@ const breathingLabels: Record<string, string> = {
   sit_wheeze: '静息喘',
 }
 
+const phaseLabels: Record<string, string> = {
+  non_dialysis: '非透析日',
+  hemodialysis: '血透',
+  perfusion: '灌流',
+  hemofiltration: '血滤',
+}
+
 const factorLabels: Record<string, string> = {
   appetite_decline: '食欲下降',
   breathing_decline: '呼吸困难加重',
@@ -251,23 +258,22 @@ export default function AIAnalysisPage() {
             <div>
               <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">透析分析</h3>
               <div className="space-y-1 text-sm">
-                <p
-                  className={
-                    summary.dialysis_analysis.pre_dialysis_worse
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-gray-600 dark:text-slate-400'
-                  }
-                >
-                  透析前恶化 {summary.dialysis_analysis.pre_dialysis_worse ? '是 ⚠️' : '否 ✅'}
+                <p className="text-gray-600 dark:text-slate-400">
+                  透析天数: {summary.dialysis_analysis.dialysis_days_count}
                 </p>
+                {summary.dialysis_analysis.types?.length > 0 && (
+                  <p className="text-gray-600 dark:text-slate-400">
+                    透析类型: {summary.dialysis_analysis.types.map(t => labelFor(t, phaseLabels)).join('、')}
+                  </p>
+                )}
                 <p
                   className={
-                    summary.dialysis_analysis.post_dialysis_improved
+                    summary.dialysis_analysis.improving
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-600 dark:text-slate-400'
                   }
                 >
-                  透析后改善 {summary.dialysis_analysis.post_dialysis_improved ? '是 ✅' : '否'}
+                  透析日状态改善 {summary.dialysis_analysis.improving ? '是 ✅' : '否'}
                 </p>
               </div>
             </div>

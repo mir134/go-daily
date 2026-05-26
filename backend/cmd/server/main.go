@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -27,8 +28,11 @@ import (
 )
 
 func main() {
+	configPath := flag.String("config", "config.yaml", "配置文件路径")
+	flag.Parse()
+
 	// 1. Load config
-	cfg, err := config.LoadConfig("config.yaml")
+	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -49,15 +53,16 @@ func main() {
 	// 4. Initialize layers
 	recordRepo := repository.NewRecordRepository(db)
 	configRepo := repository.NewAppConfigRepository(db)
-	_ = configRepo // used for future settings
 
 	recordSvc := service.NewRecordService(recordRepo)
+	configSvc := service.NewConfigService(configRepo)
 	authSvc := auth.NewAuthService(cfg.App.Password)
 
 	aiSvc := ai.NewAIService(recordRepo)
 	aiHandler := ai.NewAIHandler(aiSvc)
 
 	recordHandler := handler.NewRecordHandler(recordSvc)
+	configHandler := handler.NewConfigHandler(configSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 
 	// 5. Setup Gin router
@@ -85,6 +90,8 @@ func main() {
 		api.PUT("/records/:id", recordHandler.UpdateRecord)
 		api.DELETE("/records/:id", recordHandler.DeleteRecord)
 		api.GET("/alerts", recordHandler.CheckAlerts)
+		api.GET("/settings", configHandler.GetSettings)
+		api.PUT("/settings", configHandler.SaveSettings)
 		// AI analysis routes
 		api.GET("/ai/summary", aiHandler.GetSummary)
 		api.GET("/ai/context", aiHandler.GetContext)

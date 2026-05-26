@@ -1,30 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { exportRecords } from '../api/client'
+import { exportRecords, getSettings, saveSettings } from '../api/client'
+import type { AppSettings } from '../types'
 import Card from '../components/Card'
 import BigButton from '../components/buttons/BigButton'
 import ConfirmDialog from '../components/ConfirmDialog'
-
-const SETTINGS_KEY = 'health_record_settings'
-
-interface Settings {
-  patientName: string
-  dialysisEnabled: boolean
-  dryWeight: string
-}
-
-function loadSettings(): Settings {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return { patientName: '', dialysisEnabled: false, dryWeight: '' }
-}
-
-function saveSettings(s: Settings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
-}
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -37,14 +18,20 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    const s = loadSettings()
-    setPatientName(s.patientName)
-    setDialysisEnabled(s.dialysisEnabled)
-    setDryWeight(s.dryWeight)
+    getSettings().then((s) => {
+      setPatientName(s.patient_name)
+      setDialysisEnabled(s.dialysis_enabled)
+      setDryWeight(s.dry_weight)
+    })
   }, [])
 
-  const handleSave = () => {
-    saveSettings({ patientName, dialysisEnabled, dryWeight })
+  const handleSave = async () => {
+    const settings: AppSettings = {
+      patient_name: patientName,
+      dialysis_enabled: dialysisEnabled,
+      dry_weight: dryWeight,
+    }
+    await saveSettings(settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

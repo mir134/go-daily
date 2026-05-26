@@ -6,6 +6,7 @@ import {
   getRecordById,
   upsertTodayRecord,
   updateRecord,
+  getSettings,
 } from '../api/client'
 import StatusButton from '../components/buttons/StatusButton'
 import BigButton from '../components/buttons/BigButton'
@@ -21,13 +22,13 @@ interface FormState {
   vomit_status: string
   mental_status: string
   emotion_status: string
-  is_dialysis_day: boolean
   dialysis_phase: string
   pre_weight: string
   post_weight: string
   ultrafiltration_volume: string
   blood_pressure: string
   oxygen_saturation: string
+  blood_sugar: string
   has_black_stool: boolean
   has_blood_vomiting: boolean
   notes: string
@@ -41,13 +42,13 @@ const initialForm: FormState = {
   vomit_status: '',
   mental_status: '',
   emotion_status: '',
-  is_dialysis_day: false,
   dialysis_phase: '',
   pre_weight: '',
   post_weight: '',
   ultrafiltration_volume: '',
   blood_pressure: '',
   oxygen_saturation: '',
+  blood_sugar: '',
   has_black_stool: false,
   has_blood_vomiting: false,
   notes: '',
@@ -67,7 +68,7 @@ const overallOptions: StatusOption[] = [
 ]
 
 const breathingOptions: StatusOption[] = [
-  { emoji: '😮‍💨', label: '不喘', value: 'no_wheeze' },
+  { emoji: '😊', label: '不喘', value: 'no_wheeze' },
   { emoji: '😤', label: '走路喘', value: 'walk_wheeze' },
   { emoji: '😰', label: '坐着也喘', value: 'sit_wheeze' },
 ]
@@ -104,9 +105,10 @@ const emotionOptions: StatusOption[] = [
 ]
 
 const dialysisPhaseOptions: StatusOption[] = [
-  { emoji: '🩺', label: '透析前', value: 'pre' },
-  { emoji: '💉', label: '透析后', value: 'post' },
   { emoji: '📅', label: '非透析日', value: 'non_dialysis' },
+  { emoji: '🩸', label: '血透', value: 'hemodialysis' },
+  { emoji: '💉', label: '灌流', value: 'perfusion' },
+  { emoji: '🔬', label: '血滤', value: 'hemofiltration' },
 ]
 
 const sectionIcons: Record<string, string> = {
@@ -210,6 +212,8 @@ export default function HomePage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [editDate, setEditDate] = useState('')
   const [dryWeight, setDryWeight] = useState<number | null>(null)
+  const [dialysisEnabled, setDialysisEnabled] = useState(false)
+  const [otherPeriodExists, setOtherPeriodExists] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -229,13 +233,13 @@ export default function HomePage() {
             vomit_status: record.vomit_status ?? '',
             mental_status: record.mental_status ?? '',
             emotion_status: record.emotion_status ?? '',
-            is_dialysis_day: record.is_dialysis_day ?? false,
             dialysis_phase: record.dialysis_phase ?? '',
             pre_weight: record.pre_weight?.toString() ?? '',
             post_weight: record.post_weight?.toString() ?? '',
             ultrafiltration_volume: record.ultrafiltration_volume?.toString() ?? '',
             blood_pressure: record.blood_pressure ?? '',
             oxygen_saturation: record.oxygen_saturation?.toString() ?? '',
+            blood_sugar: record.blood_sugar?.toString() ?? '',
             has_black_stool: record.has_black_stool ?? false,
             has_blood_vomiting: record.has_blood_vomiting ?? false,
             notes: record.notes ?? '',
@@ -256,13 +260,13 @@ export default function HomePage() {
             vomit_status: record.vomit_status ?? '',
             mental_status: record.mental_status ?? '',
             emotion_status: record.emotion_status ?? '',
-            is_dialysis_day: record.is_dialysis_day ?? false,
             dialysis_phase: record.dialysis_phase ?? '',
             pre_weight: record.pre_weight?.toString() ?? '',
             post_weight: record.post_weight?.toString() ?? '',
             ultrafiltration_volume: record.ultrafiltration_volume?.toString() ?? '',
             blood_pressure: record.blood_pressure ?? '',
             oxygen_saturation: record.oxygen_saturation?.toString() ?? '',
+            blood_sugar: record.blood_sugar?.toString() ?? '',
             has_black_stool: record.has_black_stool ?? false,
             has_blood_vomiting: record.has_blood_vomiting ?? false,
             notes: record.notes ?? '',
@@ -277,21 +281,17 @@ export default function HomePage() {
   }, [period, editId])
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('health_record_settings')
-      if (raw) {
-        const s = JSON.parse(raw)
-        const dw = s.dryWeight ? Number(s.dryWeight) : null
-        setDryWeight(dw)
-        if (dw && form.is_dialysis_day && !form.post_weight) {
-          setForm((prev) => ({ ...prev, post_weight: dw.toString() }))
-        }
+    getSettings().then((s) => {
+      setDialysisEnabled(s.dialysis_enabled)
+      const dw = s.dry_weight ? Number(s.dry_weight) : null
+      setDryWeight(dw)
+      if (dw && !form.post_weight) {
+        setForm((prev) => ({ ...prev, post_weight: dw.toString() }))
       }
-    } catch {}
+    })
   }, [])
 
   useEffect(() => {
-    if (!form.is_dialysis_day) return
     const pre = Number(form.pre_weight)
     const post = Number(form.post_weight)
     if (pre > 0 && post > 0) {
@@ -303,7 +303,14 @@ export default function HomePage() {
         })
       }
     }
-  }, [form.pre_weight, form.post_weight, form.is_dialysis_day])
+  }, [form.pre_weight, form.post_weight])
+
+  // Detect if the other period already has a record today
+  useEffect(() => {
+    if (isEditMode) return
+    const other = period === 'morning' ? 'evening' : 'morning'
+    getTodayRecord(other).then((r) => setOtherPeriodExists(r != null))
+  }, [period, isEditMode])
 
   // Auto-toggle body section & auto-fill best values when good
   useEffect(() => {
@@ -345,7 +352,7 @@ export default function HomePage() {
         vomit_status: form.vomit_status,
         mental_status: form.mental_status,
         emotion_status: form.emotion_status,
-        is_dialysis_day: form.is_dialysis_day,
+        is_dialysis_day: form.dialysis_phase !== '' && form.dialysis_phase !== 'non_dialysis',
         dialysis_phase: form.dialysis_phase,
         pre_weight: form.pre_weight ? Number(form.pre_weight) : null,
         post_weight: form.post_weight ? Number(form.post_weight) : null,
@@ -355,6 +362,9 @@ export default function HomePage() {
         blood_pressure: form.blood_pressure,
         oxygen_saturation: form.oxygen_saturation
           ? Number(form.oxygen_saturation)
+          : null,
+        blood_sugar: form.blood_sugar
+          ? Number(form.blood_sugar)
           : null,
         has_black_stool: form.has_black_stool,
         has_blood_vomiting: form.has_blood_vomiting,
@@ -405,23 +415,29 @@ export default function HomePage() {
       }`} style={{ animationDelay: '50ms' }}>
         <button
           onClick={() => !isEditMode && setPeriod('morning')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-base font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex-1 py-2.5 px-4 rounded-lg text-base font-bold transition-all duration-200 cursor-pointer active:scale-95 relative ${
             period === 'morning'
               ? 'bg-white dark:bg-slate-700 text-primary dark:text-primary-light shadow-sm'
               : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
           }`}
         >
           🌅 早上
+          {!isEditMode && period !== 'morning' && otherPeriodExists && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-800" />
+          )}
         </button>
         <button
           onClick={() => !isEditMode && setPeriod('evening')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-base font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex-1 py-2.5 px-4 rounded-lg text-base font-bold transition-all duration-200 cursor-pointer active:scale-95 relative ${
             period === 'evening'
               ? 'bg-white dark:bg-slate-700 text-primary dark:text-primary-light shadow-sm'
               : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
           }`}
         >
           🌙 晚上
+          {!isEditMode && period !== 'evening' && otherPeriodExists && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-800" />
+          )}
         </button>
       </div>
 
@@ -459,16 +475,12 @@ export default function HomePage() {
           <span className="flex items-center gap-2">
             <span className="animate-float inline-block">{sectionIcons.body}</span>
             身体状态
-            {form.overall_status === 'good' && !showBody && (
-              <span className="text-xs font-normal text-gray-400 dark:text-slate-500 ml-2">(已跳过)</span>
+            {!showBody && (
+              <span className="text-xs font-normal text-gray-400 dark:text-slate-500 ml-2">点击展开</span>
             )}
           </span>
-          <span
-            className={`text-gray-400 dark:text-slate-500 text-lg transition-transform duration-300 ${
-              showBody ? 'rotate-180' : ''
-            }`}
-          >
-            ▼
+          <span className="text-gray-400 dark:text-slate-500 text-lg">
+            {showBody ? '▼' : '▶'}
           </span>
         </button>
 
@@ -521,52 +533,17 @@ export default function HomePage() {
       </section>
 
       {/* Section 3: 透析信息 */}
-      <section className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <h2 className="text-xl font-bold text-gray-800 dark:text-slate-100 mb-3 flex items-center gap-2">
-          <span>{sectionIcons.dialysis}</span>
-          透析信息
-        </h2>
-        <Card title="" delay={0}>
-          {/* Dialysis Toggle */}
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-base font-medium text-gray-700 dark:text-slate-300">是否透析</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => updateField('is_dialysis_day', true)}
-                className={`rounded-xl border-2 px-5 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer active:scale-95 ${
-                  form.is_dialysis_day
-                    ? 'bg-primary/10 dark:bg-primary/20 border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-slate-400'
-                }`}
-              >
-                是
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  updateField('is_dialysis_day', false)
-                  updateField('dialysis_phase', '')
-                  updateField('pre_weight', '')
-                  updateField('post_weight', '')
-                  updateField('ultrafiltration_volume', '')
-                }}
-                className={`rounded-xl border-2 px-5 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer active:scale-95 ${
-                  !form.is_dialysis_day
-                    ? 'bg-primary/10 dark:bg-primary/20 border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-600 text-gray-500 dark:text-slate-400'
-                }`}
-              >
-                否
-              </button>
-            </div>
-          </div>
-
-          {form.is_dialysis_day && (
+      {dialysisEnabled && (
+        <section className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+            <span>{sectionIcons.dialysis}</span>
+            透析信息
+          </h2>
+          <Card title="" delay={0}>
             <div className="space-y-4">
               <div>
                 <span className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-2">
-                  透析阶段
+                  透析类型
                 </span>
                 <div className="flex gap-2">
                   {dialysisPhaseOptions.map((opt) => (
@@ -581,7 +558,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {dryWeight && (
+              {dryWeight && form.dialysis_phase !== 'non_dialysis' && (
                 <div className="text-sm text-gray-500 dark:text-slate-400 bg-cyan-50 dark:bg-slate-700/50 rounded-xl px-4 py-2.5 border border-cyan-100 dark:border-slate-600">
                   干体重已设置: <span className="font-semibold text-primary dark:text-primary-light">{dryWeight} kg</span>
                   {form.pre_weight && Number(form.pre_weight) > 0 && (
@@ -596,7 +573,7 @@ export default function HomePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
-                  透析前体重 (kg)
+                  {form.dialysis_phase === 'non_dialysis' ? '当前体重 (kg)' : '透析前体重 (kg)'}
                 </label>
                 <input
                   type="number"
@@ -607,6 +584,7 @@ export default function HomePage() {
                   className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
                 />
               </div>
+              {form.dialysis_phase !== 'non_dialysis' && (
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                   透析后体重 (kg)
@@ -620,6 +598,8 @@ export default function HomePage() {
                   className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
                 />
               </div>
+              )}
+              {form.dialysis_phase !== 'non_dialysis' && (
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                   脱水量 (ml)
@@ -635,10 +615,11 @@ export default function HomePage() {
                   💡 输入透析前后体重自动计算脱水量
                 </p>
               </div>
+              )}
             </div>
-          )}
-        </Card>
-      </section>
+          </Card>
+        </section>
+      )}
 
       {/* Section 4: 额外信息 */}
       <section className="animate-slide-up" style={{ animationDelay: '250ms' }}>
@@ -650,13 +631,12 @@ export default function HomePage() {
           <span className="flex items-center gap-2">
             <span>{sectionIcons.extra}</span>
             额外信息
+            {!showExtra && (
+              <span className="text-xs font-normal text-gray-400 dark:text-slate-500 ml-2">点击展开</span>
+            )}
           </span>
-          <span
-            className={`text-gray-400 dark:text-slate-500 text-lg transition-transform duration-300 ${
-              showExtra ? 'rotate-180' : ''
-            }`}
-          >
-            ▼
+          <span className="text-gray-400 dark:text-slate-500 text-lg">
+            {showExtra ? '▼' : '▶'}
           </span>
         </button>
 
@@ -690,6 +670,21 @@ export default function HomePage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
+                血糖 (mmol/L)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={form.blood_sugar}
+                onChange={(e) => updateField('blood_sugar', e.target.value)}
+                placeholder="5.6"
+                className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
+              />
+            </div>
+
             <label className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
@@ -713,21 +708,21 @@ export default function HomePage() {
                 是否吐血
               </span>
             </label>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
-                备注
-              </label>
-              <textarea
-                rows={3}
-                value={form.notes}
-                onChange={(e) => updateField('notes', e.target.value)}
-                placeholder="其他需要记录的情况..."
-                className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200 resize-none"
-              />
-            </div>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
+            备注
+          </label>
+          <textarea
+            rows={3}
+            value={form.notes}
+            onChange={(e) => updateField('notes', e.target.value)}
+            placeholder="其他需要记录的情况..."
+            className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200 resize-none"
+          />
+        </div>
       </section>
 
       {/* Fixed Save Button */}
@@ -743,7 +738,7 @@ export default function HomePage() {
             onClick={handleSave}
             disabled={isSaving}
           >
-            {isSaving ? '⏳ 保存中...' : '💾 保存记录'}
+            {isSaving ? '⏳ 打卡中...' : '✅ 完成打卡'}
           </BigButton>
         </div>
       </div>

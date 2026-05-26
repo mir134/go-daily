@@ -18,11 +18,18 @@ export interface DailyRecord {
   ultrafiltration_volume: number | null
   blood_pressure: string
   oxygen_saturation: number | null
+  blood_sugar: number | null
   has_black_stool: boolean
   has_blood_vomiting: boolean
   notes: string
   created_at: string
   updated_at: string
+}
+
+export interface AppSettings {
+  patient_name: string
+  dialysis_enabled: boolean
+  dry_weight: string
 }
 
 export interface AppConfig {
@@ -71,8 +78,9 @@ export interface PatientStatus {
 }
 
 export interface DialysisAnalysis {
-  pre_dialysis_worse: boolean
-  post_dialysis_improved: boolean
+  dialysis_days_count: number
+  types: string[]
+  improving: boolean
 }
 
 export interface NutritionAnalysis {
