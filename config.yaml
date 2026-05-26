@@ -1,0 +1,14 @@
+# 服务器配置
+server:
+  port: 8080              # 服务器监听端口，默认 8080
+  host: "0.0.0.0"         # 服务器监听地址，默认 0.0.0.0
+
+# 数据库配置
+database:
+  path: "./data/app.db"   # SQLite 数据库文件路径
+
+# 应用配置
+app:
+  password: "100"            # 应用密码，从环境变量 APP_PASSWORD 获取
+  name: "家庭健康记录"      # 应用名称
+  dialysisEnabled: true   # 是否启用透析记录功能
