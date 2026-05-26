@@ -115,7 +115,7 @@ export default function HistoryPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await getRecords(1, 999)
+      const res = await getRecords(1, 20)
       setAllRecords(res.data)
       setPage(1)
     } catch {

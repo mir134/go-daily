@@ -108,7 +108,7 @@ export default function TrendsPage() {
       setLoading(true)
       try {
         const [recordsRes, alertsData] = await Promise.all([
-          getRecords(1, 999),
+          getRecords(1, dateRange * 2),
           getAlerts(),
         ])
         setRecords(recordsRes.data)
