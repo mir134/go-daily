@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 
 interface LayoutProps {
   children: ReactNode
@@ -8,6 +9,19 @@ interface LayoutProps {
 
 export default function Layout({ children, title = '家庭健康记录' }: LayoutProps) {
   const location = useLocation()
+
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem('health_dark_mode')
+      if (saved !== null) return saved === 'true'
+    } catch {}
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+    try { localStorage.setItem('health_dark_mode', String(dark)) } catch {}
+  }, [dark])
 
   const navItems = [
     { path: '/', label: '首页', icon: '🏠' },
@@ -20,37 +34,41 @@ export default function Layout({ children, title = '家庭健康记录' }: Layou
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
-      {/* Top Header */}
-      <header className="bg-primary text-white py-3 px-4 shadow-sm">
-        <div className="max-w-[480px] mx-auto">
-          <h1 className="text-xl font-bold">{title}</h1>
+    <div className="min-h-screen bg-cyan-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
+      <header className="bg-primary dark:bg-slate-800 text-white px-4 shadow-lg sticky top-0 z-30">
+        <div className="max-w-[480px] mx-auto h-14 flex items-center justify-between">
+          <h1 className="text-xl font-bold tracking-wide">{title}</h1>
+          <button
+            onClick={() => setDark(d => !d)}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-all duration-200 cursor-pointer active:scale-90"
+            aria-label={dark ? '切换到亮色模式' : '切换到暗色模式'}
+          >
+            <span className="text-lg">{dark ? '☀️' : '🌙'}</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 px-4 py-6">
+      <main className="flex-1 pb-24">
         <div className="max-w-[480px] mx-auto">
           {children}
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-md">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-lg border-t border-gray-200 dark:border-slate-700 shadow-md z-30">
         <div className="max-w-[480px] mx-auto">
           <div className="flex justify-around">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center py-2 px-3 w-full transition-colors ${
+                className={`flex flex-col items-center py-2 px-3 w-full transition-all duration-200 ${
                   isActive(item.path)
-                    ? 'text-primary'
-                    : 'text-text-secondary'
+                    ? 'text-primary dark:text-primary-light'
+                    : 'text-gray-500 dark:text-slate-400'
                 }`}
               >
                 <span className="text-lg">{item.icon}</span>
-                <span className="text-sm mt-1 font-medium">{item.label}</span>
+                <span className="text-xs mt-0.5 font-medium">{item.label}</span>
               </Link>
             ))}
           </div>

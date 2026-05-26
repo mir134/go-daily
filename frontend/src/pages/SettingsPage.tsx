@@ -18,7 +18,7 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (raw) return JSON.parse(raw)
-  } catch { /* ignore */ }
+  } catch {}
   return { patientName: '', dialysisEnabled: false, dryWeight: '' }
 }
 
@@ -36,7 +36,6 @@ export default function SettingsPage() {
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Load settings on mount
   useEffect(() => {
     const s = loadSettings()
     setPatientName(s.patientName)
@@ -61,14 +60,11 @@ export default function SettingsPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch {
-      // Export failed — silently ignore for now
-    }
+    } catch {}
   }
 
   const handleClear = () => {
     setClearDialogOpen(false)
-    // Placeholder: actual delete-all endpoint is future
   }
 
   const handleLogout = async () => {
@@ -78,11 +74,10 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">设置</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">设置</h1>
 
-      {/* Card 1: 患者信息 */}
       <Card title="患者信息" className="mb-4">
-        <label className="block text-sm font-medium text-text-secondary mb-1">
+        <label className="block text-sm font-medium text-text-secondary dark:!text-slate-400 mb-1">
           患者姓名
         </label>
         <input
@@ -90,18 +85,16 @@ export default function SettingsPage() {
           value={patientName}
           onChange={(e) => setPatientName(e.target.value)}
           placeholder="请输入患者姓名"
-          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 focus:border-primary focus:outline-none transition-all"
+          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all"
         />
-        <p className="text-xs text-text-secondary mt-2">
+        <p className="text-xs text-text-secondary dark:!text-slate-400 mt-2">
           姓名仅保存在本地，暂不会上传至服务器
         </p>
       </Card>
 
-      {/* Card 2: 透析设置 */}
       <Card title="透析设置" className="mb-4">
-        {/* Enable Dialysis */}
         <label className="flex items-center justify-between cursor-pointer mb-4">
-          <span className="text-base font-medium">启用透析记录</span>
+          <span className="text-base font-medium text-gray-700 dark:text-slate-300">启用透析记录</span>
           <div className="relative">
             <input
               type="checkbox"
@@ -109,15 +102,14 @@ export default function SettingsPage() {
               onChange={(e) => setDialysisEnabled(e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-primary transition-colors" />
-            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow peer-checked:translate-x-5 transition-transform" />
+            <div className="w-11 h-6 bg-gray-300 dark:bg-slate-600 rounded-full peer-checked:bg-primary dark:peer-checked:bg-primary-light transition-colors" />
+            <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white dark:bg-slate-200 rounded-full shadow peer-checked:translate-x-5 transition-transform" />
           </div>
         </label>
 
-        {/* Dry Weight */}
         {dialysisEnabled && (
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1">
+            <label className="block text-sm font-medium text-text-secondary dark:!text-slate-400 mb-1">
               干体重 (kg)
             </label>
             <input
@@ -126,23 +118,21 @@ export default function SettingsPage() {
               value={dryWeight}
               onChange={(e) => setDryWeight(e.target.value)}
               placeholder="例如: 60.0"
-              className="w-full rounded-xl p-4 text-base border-2 border-gray-300 focus:border-primary focus:outline-none transition-all"
+              className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all"
             />
-            <p className="text-xs text-text-secondary mt-2">
+            <p className="text-xs text-text-secondary dark:!text-slate-400 mt-2">
               设置干体重后，录入透析信息时自动填入并计算脱水量
             </p>
           </div>
         )}
       </Card>
 
-      {/* Save Button */}
       <div className="mb-4">
         <BigButton onClick={handleSave} variant="primary">
-          {saved ? '已保存 ✓' : '保存设置'}
+          {saved ? '已保存 ✅' : '保存设置'}
         </BigButton>
       </div>
 
-      {/* Card 3: 数据管理 */}
       <Card title="数据管理" className="mb-4">
         <div className="space-y-3">
           <BigButton onClick={handleExport} variant="primary">
@@ -154,33 +144,30 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* Card 4: 关于 */}
       <Card title="关于" className="mb-4">
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-text-secondary">应用名称</span>
-            <span className="font-medium">家庭健康记录</span>
+            <span className="text-text-secondary dark:!text-slate-400">应用名称</span>
+            <span className="font-medium text-gray-800 dark:text-slate-200">家庭健康记录</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-text-secondary">版本</span>
-            <span className="font-medium">1.0.0</span>
+            <span className="text-text-secondary dark:!text-slate-400">版本</span>
+            <span className="font-medium text-gray-800 dark:text-slate-200">1.0.0</span>
           </div>
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-text-secondary text-xs">
+          <div className="pt-2 border-t border-gray-100 dark:border-slate-700">
+            <p className="text-text-secondary dark:!text-slate-400 text-xs">
               慢病/透析患者每日状态观察系统
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Logout */}
       <div className="mt-8 mb-24">
         <BigButton onClick={handleLogout} variant="danger">
           退出登录
         </BigButton>
       </div>
 
-      {/* Clear Data Confirm Dialog */}
       <ConfirmDialog
         isOpen={clearDialogOpen}
         onConfirm={handleClear}

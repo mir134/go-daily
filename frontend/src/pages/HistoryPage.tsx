@@ -7,12 +7,10 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import LoadingSpinner from '../components/LoadingSpinner'
 import BigButton from '../components/buttons/BigButton'
 
-// ─── Status display maps ────────────────────────────────────────────────────────
-
 const overallStatusMap: Record<string, { text: string; emoji: string }> = {
   good: { text: '感觉很好', emoji: '🙂' },
   normal: { text: '感觉一般', emoji: '😐' },
-  uncomfortable: { text: '感觉不适', emoji: '😟' },
+  uncomfortable: { text: '感觉不舒服', emoji: '😟' },
   severe: { text: '情况严重', emoji: '🚨' },
 }
 
@@ -62,16 +60,12 @@ const periodMap: Record<string, string> = {
   evening: '晚上',
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────────
-
 function formatDate(dateString: string) {
   const d = new Date(dateString)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const pageSize = 10
-
-// ─── Component ──────────────────────────────────────────────────────────────────
 
 export default function HistoryPage() {
   const navigate = useNavigate()
@@ -88,8 +82,6 @@ export default function HistoryPage() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
-
-  // ─── Fetch ──────────────────────────────────────────────────────────────────
 
   async function fetchData(p: number) {
     setLoading(true)
@@ -110,8 +102,6 @@ export default function HistoryPage() {
     fetchData(1)
   }, [])
 
-  // ─── Export ─────────────────────────────────────────────────────────────────
-
   async function handleExport(format: 'json' | 'csv') {
     try {
       const blob = await exportRecords(format)
@@ -129,7 +119,6 @@ export default function HistoryPage() {
     setExportOpen(false)
   }
 
-  // Close export dropdown on outside click
   useEffect(() => {
     if (!exportOpen) return
     function handleClick(e: MouseEvent) {
@@ -140,8 +129,6 @@ export default function HistoryPage() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [exportOpen])
-
-  // ─── Delete ─────────────────────────────────────────────────────────────────
 
   async function handleDeleteConfirm() {
     if (!selectedRecord) return
@@ -156,52 +143,46 @@ export default function HistoryPage() {
     }
   }
 
-  // ─── Detail field renderer ──────────────────────────────────────────────────
-
   function renderDetail(label: string, value: string) {
     return (
       <div>
-        <p className="text-sm text-gray-500 mb-0.5">{label}</p>
-        <p className="text-base font-medium">{value || '未填写'}</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-0.5">{label}</p>
+        <p className="text-base font-medium text-gray-800 dark:text-slate-200">{value || '未填写'}</p>
       </div>
     )
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-4 transition-colors duration-300">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">历史记录</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">历史记录</h1>
         <button
           onClick={() => fetchData(page)}
-          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="rounded-xl border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
         >
           刷新
         </button>
       </div>
 
-      {/* ── Export ──────────────────────────────────────────────────────────── */}
       <div ref={exportRef} className="relative mb-6">
         <button
           onClick={() => setExportOpen((v) => !v)}
-          className="rounded-xl bg-primary text-white px-5 py-2.5 text-base font-bold hover:opacity-90 active:scale-95 transition-all touch-manipulation"
+          className="rounded-xl bg-primary dark:bg-primary/90 text-white px-5 py-2.5 text-base font-bold hover:opacity-90 active:scale-95 transition-all touch-manipulation cursor-pointer"
         >
           导出数据
         </button>
 
         {exportOpen && (
-          <div className="absolute top-full left-0 mt-1 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10">
+          <div className="absolute top-full left-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-lg dark:shadow-slate-900/50 border border-gray-100 dark:border-slate-700 py-1 z-10">
             <button
               onClick={() => handleExport('json')}
-              className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               JSON 格式
             </button>
             <button
               onClick={() => handleExport('csv')}
-              className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               CSV 格式
             </button>
@@ -209,29 +190,25 @@ export default function HistoryPage() {
         )}
       </div>
 
-      {/* ── Loading ─────────────────────────────────────────────────────────── */}
       {loading && (
         <div className="flex justify-center py-20">
           <LoadingSpinner />
         </div>
       )}
 
-      {/* ── Error ───────────────────────────────────────────────────────────── */}
       {!loading && error && (
         <div className="flex flex-col items-center gap-4 py-20">
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 dark:text-red-400">{error}</p>
           <BigButton onClick={() => fetchData(page)}>重试</BigButton>
         </div>
       )}
 
-      {/* ── Empty ───────────────────────────────────────────────────────────── */}
       {!loading && !error && records.length === 0 && (
         <div className="flex justify-center py-20">
-          <p className="text-gray-500 text-lg">还没有记录，去首页打卡吧！</p>
+          <p className="text-gray-500 dark:text-slate-400 text-lg">还没有记录，去首页打卡吧 📝</p>
         </div>
       )}
 
-      {/* ── Record cards ────────────────────────────────────────────────────── */}
       {!loading && !error && records.length > 0 && (
         <>
           <div className="space-y-4 mb-8">
@@ -244,24 +221,22 @@ export default function HistoryPage() {
                     setSelectedRecord(r)
                     setModalOpen(true)
                   }}
-                  className="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow touch-manipulation min-h-[48px]"
+                  className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/50 p-4 cursor-pointer hover:shadow-md dark:hover:shadow-slate-900/80 transition-shadow touch-manipulation min-h-[48px]"
                 >
-                  {/* Date + overall status */}
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xl font-bold text-blue-600">
+                    <span className="text-xl font-bold text-primary dark:text-primary-light">
                       {formatDate(r.date)}
-                      <span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 ml-2">
+                      <span className="text-xs bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-light rounded-full px-2 py-0.5 ml-2">
                         {periodMap[r.period] || r.period}
                       </span>
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <span className="text-xl">{ov.emoji}</span>
-                      <span className="text-sm text-gray-600">{ov.text}</span>
+                      <span className="text-xl">{ov?.emoji}</span>
+                      <span className="text-sm text-gray-600 dark:text-slate-400">{ov?.text}</span>
                     </span>
                   </div>
 
-                  {/* Summary row */}
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 dark:text-slate-400">
                     呼吸: {breathingMap[r.breathing_status] || '未填写'} | 食欲: {appetiteMap[r.appetite_status] || '未填写'} | 精神: {mentalMap[r.mental_status] || '未填写'}
                   </div>
                 </div>
@@ -269,22 +244,21 @@ export default function HistoryPage() {
             })}
           </div>
 
-          {/* ── Pagination ────────────────────────────────────────────────── */}
           <div className="flex items-center justify-center gap-4 pb-8">
             <button
               onClick={() => fetchData(page - 1)}
               disabled={page <= 1}
-              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-xl border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               上一页
             </button>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-slate-400">
               第 {page} 页 / 共 {totalPages} 页
             </span>
             <button
               onClick={() => fetchData(page + 1)}
               disabled={page >= totalPages}
-              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="rounded-xl border border-gray-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               下一页
             </button>
@@ -292,7 +266,6 @@ export default function HistoryPage() {
         </>
       )}
 
-      {/* ── Detail modal ───────────────────────────────────────────────────── */}
       {selectedRecord && (
         <Modal
           isOpen={modalOpen}
@@ -326,12 +299,11 @@ export default function HistoryPage() {
 
             {selectedRecord.notes && (
               <div>
-                <p className="text-sm text-gray-500 mb-0.5">备注</p>
-                <p className="text-base font-medium">{selectedRecord.notes}</p>
+                <p className="text-sm text-gray-500 dark:text-slate-400 mb-0.5">备注</p>
+                <p className="text-base font-medium text-gray-800 dark:text-slate-200">{selectedRecord.notes}</p>
               </div>
             )}
 
-            {/* Action buttons */}
             <div className="flex gap-3 pt-2">
               <div className="flex-1">
                 <BigButton onClick={() => navigate(`/?edit=${selectedRecord.id}`)}>
@@ -348,13 +320,12 @@ export default function HistoryPage() {
         </Modal>
       )}
 
-      {/* ── Delete confirm ──────────────────────────────────────────────────── */}
       <ConfirmDialog
         isOpen={deleteOpen}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteOpen(false)}
         title="确认删除"
-        message="确定要删除这条记录吗？此操作不可恢复。"
+        message="确定要删除这条记录吗？此操作不可恢复！"
       />
     </div>
   )

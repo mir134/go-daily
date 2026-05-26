@@ -4,8 +4,6 @@ import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { SummaryResult, ContextResult, RiskScoreResult, RecordSummary } from '../types'
 
-// ─── Helper Mappings ──────────────────────────────────────────────────────────
-
 const overallLabels: Record<string, string> = {
   good: '好',
   normal: '一般',
@@ -35,24 +33,20 @@ function labelFor(val: string, map: Record<string, string>): string {
   return map[val] ?? val
 }
 
-// ─── Trend Label Helper ───────────────────────────────────────────────────────
-
 function trendLabel(trend: string): { emoji: string; text: string; color: string } {
   switch (trend) {
     case 'declining':
-      return { emoji: '🔴', text: '恶化中', color: 'text-red-600' }
+      return { emoji: '🔴', text: '恶化中', color: 'text-red-600 dark:text-red-400' }
     case 'improving':
-      return { emoji: '🟢', text: '改善中', color: 'text-green-600' }
+      return { emoji: '🟢', text: '改善中', color: 'text-green-600 dark:text-green-400' }
     case 'stable':
-      return { emoji: '✅', text: '稳定', color: 'text-green-600' }
+      return { emoji: '✅', text: '稳定', color: 'text-green-600 dark:text-green-400' }
     case 'unstable':
-      return { emoji: '🔶', text: '波动', color: 'text-amber-600' }
+      return { emoji: '🔶', text: '波动', color: 'text-amber-600 dark:text-amber-400' }
     default:
-      return { emoji: '⚪', text: '数据不足', color: 'text-gray-400' }
+      return { emoji: '❓', text: '数据不足', color: 'text-gray-400 dark:text-slate-500' }
   }
 }
-
-// ─── Risk Display Helper ──────────────────────────────────────────────────────
 
 function riskDisplay(level: string): { emoji: string; text: string; bg: string } {
   switch (level) {
@@ -60,24 +54,22 @@ function riskDisplay(level: string): { emoji: string; text: string; bg: string }
       return {
         emoji: '🔴',
         text: '高风险',
-        bg: 'bg-red-50 border-red-200 text-red-700',
+        bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
       }
     case 'medium':
       return {
         emoji: '🟡',
         text: '中风险',
-        bg: 'bg-amber-50 border-amber-200 text-amber-700',
+        bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
       }
     default:
       return {
         emoji: '🟢',
         text: '低风险',
-        bg: 'bg-green-50 border-green-200 text-green-700',
+        bg: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
       }
   }
 }
-
-// ─── Today's Date Formatter ───────────────────────────────────────────────────
 
 function todayDateStr(): string {
   const d = new Date()
@@ -86,8 +78,6 @@ function todayDateStr(): string {
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}年${m}月${day}日`
 }
-
-// ─── Trend Item Row ───────────────────────────────────────────────────────────
 
 function TrendRow({
   label,
@@ -99,7 +89,7 @@ function TrendRow({
   const t = trendLabel(trend)
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-gray-700 font-medium">{label}</span>
+      <span className="text-gray-700 dark:text-slate-300 font-medium">{label}</span>
       <span className={`inline-flex items-center gap-1 text-sm font-medium ${t.color}`}>
         {t.emoji}
         {t.text}
@@ -108,26 +98,22 @@ function TrendRow({
   )
 }
 
-// ─── Record Row ───────────────────────────────────────────────────────────────
-
 function RecordRow({ record }: { record: RecordSummary }) {
   return (
-    <tr className="border-b border-gray-100 last:border-0">
-      <td className="py-2 text-sm text-gray-600">{record.date}</td>
-      <td className="py-2 text-sm text-gray-800">
+    <tr className="border-b border-gray-100 dark:border-slate-700 last:border-0">
+      <td className="py-2 text-sm text-gray-600 dark:text-slate-400">{record.date}</td>
+      <td className="py-2 text-sm text-gray-800 dark:text-slate-200">
         {labelFor(record.overall_status, overallLabels)}
       </td>
-      <td className="py-2 text-sm text-gray-800">
+      <td className="py-2 text-sm text-gray-800 dark:text-slate-200">
         {labelFor(record.breathing_status, breathingLabels)}
       </td>
-      <td className="py-2 text-sm text-gray-800">
+      <td className="py-2 text-sm text-gray-800 dark:text-slate-200">
         {labelFor(record.appetite_status, appetiteLabels)}
       </td>
     </tr>
   )
 }
-
-// ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function AIAnalysisPage() {
   const [summary, setSummary] = useState<SummaryResult | null>(null)
@@ -159,33 +145,28 @@ export default function AIAnalysisPage() {
     fetchData()
   }, [fetchData])
 
-  // Auto-refresh every 60 seconds
   useEffect(() => {
     const interval = setInterval(fetchData, 60_000)
     return () => clearInterval(interval)
   }, [fetchData])
 
-  // ── Loading ────────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
-  // ── Error ──────────────────────────────────────────────────────────────────
-
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 pb-24">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">AI 分析</h1>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-4 pb-24">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">AI 分析</h1>
         <div className="text-center py-16">
-          <p className="text-red-500 mb-4">分析数据加载失败</p>
+          <p className="text-red-500 dark:text-red-400 mb-4">分析数据加载失败</p>
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
           >
             重新加载
           </button>
@@ -194,23 +175,17 @@ export default function AIAnalysisPage() {
     )
   }
 
-  // ── Normal Render ──────────────────────────────────────────────────────────
-
   const risk = riskScore ? riskDisplay(riskScore.risk_level) : null
   const trend = context?.trend_analysis
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24 space-y-5">
-      {/* Page Title */}
-      <h1 className="text-2xl font-bold text-gray-800">AI 分析</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-4 pb-24 space-y-5 transition-colors duration-300">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">AI 分析</h1>
 
-      {/* ── Risk Level Card ──────────────────────────────────────────────── */}
       <Card title="风险评估">
         <div className="space-y-4">
-          {/* Date */}
-          <p className="text-sm text-gray-400">{todayDateStr()}</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">{todayDateStr()}</p>
 
-          {/* Risk Badge + Score */}
           {risk && (
             <div className={`inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-base font-bold ${risk.bg}`}>
               <span>{risk.emoji}</span>
@@ -223,54 +198,49 @@ export default function AIAnalysisPage() {
             </div>
           )}
 
-          {/* Risk Factors */}
           {riskScore && riskScore.factors.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">风险因素</h3>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">风险因素</h3>
               <div className="space-y-1">
                 {riskScore.factors.map((f, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">
+                    <span className="text-gray-700 dark:text-slate-300">
                       {labelFor(f.name, factorLabels)}
                     </span>
-                    <span className="text-gray-500 font-mono">{f.score}</span>
+                    <span className="text-gray-500 dark:text-slate-400 font-mono">{f.score}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* No factors */}
           {riskScore && riskScore.factors.length === 0 && (
-            <p className="text-sm text-green-600 font-medium">
+            <p className="text-sm text-green-600 dark:text-green-400 font-medium">
               ✅ 当前未发现明显风险因素
             </p>
           )}
         </div>
       </Card>
 
-      {/* ── Trend Analysis Card ──────────────────────────────────────────── */}
       <Card title="近期趋势分析">
         {trend ? (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             <TrendRow label="食欲趋势" trend={trend.appetite} />
             <TrendRow label="呼吸趋势" trend={trend.breathing} />
             <TrendRow label="平躺能力趋势" trend={trend.sleep_position} />
           </div>
         ) : (
-          <p className="text-gray-400 text-sm py-2">暂无趋势数据</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm py-2">暂无趋势数据</p>
         )}
       </Card>
 
-      {/* ── AI Summary Card ─────────────────────────────────────────────── */}
       {summary && (
         <Card title="AI 分析总结">
           <div className="space-y-4">
-            {/* Key Changes */}
             {summary.patient_status.key_changes.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">主要变化</h3>
-                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">主要变化</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-slate-300">
                   {summary.patient_status.key_changes.map((change, i) => (
                     <li key={i}>{change}</li>
                   ))}
@@ -278,49 +248,46 @@ export default function AIAnalysisPage() {
               </div>
             )}
 
-            {/* Dialysis Analysis */}
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">透析分析</h3>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">透析分析</h3>
               <div className="space-y-1 text-sm">
                 <p
                   className={
                     summary.dialysis_analysis.pre_dialysis_worse
-                      ? 'text-red-600'
-                      : 'text-gray-600'
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-gray-600 dark:text-slate-400'
                   }
                 >
-                  透析前恶化: {summary.dialysis_analysis.pre_dialysis_worse ? '是 ⚠️' : '否 ✅'}
+                  透析前恶化 {summary.dialysis_analysis.pre_dialysis_worse ? '是 ⚠️' : '否 ✅'}
                 </p>
                 <p
                   className={
                     summary.dialysis_analysis.post_dialysis_improved
-                      ? 'text-green-600'
-                      : 'text-gray-600'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-600 dark:text-slate-400'
                   }
                 >
-                  透析后改善: {summary.dialysis_analysis.post_dialysis_improved ? '是 ✅' : '否'}
+                  透析后改善 {summary.dialysis_analysis.post_dialysis_improved ? '是 ✅' : '否'}
                 </p>
               </div>
             </div>
 
-            {/* Nutrition Analysis */}
             <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">营养分析</h3>
-              <p className="text-sm text-gray-700">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">营养分析</h3>
+              <p className="text-sm text-gray-700 dark:text-slate-300">
                 食欲趋势: {trendLabel(summary.nutrition_analysis.appetite_trend).emoji}{' '}
                 {trendLabel(summary.nutrition_analysis.appetite_trend).text}
               </p>
             </div>
 
-            {/* Warning Signals */}
             {summary.warning_signals.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">警告信号</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-2">警告信号</h3>
                 <div className="space-y-2">
                   {summary.warning_signals.map((signal, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700"
+                      className="flex items-start gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2 text-sm text-red-700 dark:text-red-300"
                     >
                       <span className="mt-0.5">⚠️</span>
                       <span>{signal}</span>
@@ -330,9 +297,8 @@ export default function AIAnalysisPage() {
               </div>
             )}
 
-            {/* No warning signals */}
             {summary.warning_signals.length === 0 && (
-              <p className="text-sm text-green-600 font-medium">
+              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
                 ✅ 目前没有发现警告信号
               </p>
             )}
@@ -340,13 +306,12 @@ export default function AIAnalysisPage() {
         </Card>
       )}
 
-      {/* ── Recent Records Preview ──────────────────────────────────────── */}
       <Card title="最近7天记录">
         {context && context.recent_records.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider">
+                <tr className="border-b border-gray-200 dark:border-slate-700 text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wider">
                   <th className="py-2 pr-2">日期</th>
                   <th className="py-2 pr-2">整体</th>
                   <th className="py-2 pr-2">呼吸</th>
@@ -361,7 +326,7 @@ export default function AIAnalysisPage() {
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm py-2">暂无近期记录</p>
+          <p className="text-gray-400 dark:text-slate-500 text-sm py-2">暂无近期记录</p>
         )}
       </Card>
     </div>

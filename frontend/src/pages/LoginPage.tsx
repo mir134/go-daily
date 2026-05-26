@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
 
-  // Auto-check auth on mount — redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated) {
       navigate('/')
@@ -39,27 +38,23 @@ export default function LoginPage() {
     handleLogin()
   }
 
-  // Show loading state while checking auth status
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
       <div className="w-full max-w-md">
-        {/* App Logo/Title */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-primary mb-2">家庭健康记录</h1>
-          <p className="text-lg text-gray-500">慢病/透析患者每日状态观察系统</p>
+          <h1 className="text-3xl font-bold text-primary dark:text-primary-light mb-2">家庭健康记录</h1>
+          <p className="text-lg text-gray-500 dark:text-slate-400">慢病/透析患者每日状态观察系统</p>
         </div>
 
-        {/* Login Form */}
         <form ref={formRef} onSubmit={onSubmit}>
-          {/* Password Input */}
           <div className="mb-6">
             <input
               type="password"
@@ -67,17 +62,15 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="请输入密码"
               disabled={isLoggingIn}
-              className="w-full rounded-xl p-4 text-xl border-2 border-gray-300 focus:border-primary focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl p-4 text-xl border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               autoComplete="current-password"
             />
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="text-danger text-center mb-6">{error}</div>
+            <div className="text-danger dark:text-red-400 text-center mb-6">{error}</div>
           )}
 
-          {/* Submit Button */}
           <BigButton
             onClick={() => formRef.current?.requestSubmit()}
             disabled={isLoggingIn || !password.trim()}

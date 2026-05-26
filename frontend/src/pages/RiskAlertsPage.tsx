@@ -34,13 +34,13 @@ export default function RiskAlertsPage() {
 
   const severityBadgeClass = (severity: string) =>
     severity === 'danger'
-      ? 'bg-red-100 text-red-700 border-red-200'
-      : 'bg-orange-100 text-orange-700 border-orange-200'
+      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
+      : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800'
 
   if (loading) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">风险预警</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">风险预警</h1>
         <LoadingSpinner />
       </div>
     )
@@ -49,12 +49,12 @@ export default function RiskAlertsPage() {
   if (error) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">风险预警</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">风险预警</h1>
         <div className="text-center py-10">
-          <p className="text-red-500 mb-4">预警信息加载失败</p>
+          <p className="text-red-500 dark:text-red-400 mb-4">预警信息加载失败</p>
           <button
             onClick={fetchAlerts}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
           >
             重新加载
           </button>
@@ -66,11 +66,11 @@ export default function RiskAlertsPage() {
   if (alerts.length === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-bold mb-6">风险预警</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">风险预警</h1>
         <div className="flex flex-col items-center justify-center py-16">
-          <span className="text-5xl mb-4">✓</span>
-          <p className="text-lg text-green-600 font-medium">
-            目前没有发现风险趋势 ✓
+          <span className="text-5xl mb-4">✅</span>
+          <p className="text-lg text-green-600 dark:text-green-400 font-medium">
+            目前没有发现风险趋势 🎉
           </p>
         </div>
       </div>
@@ -79,7 +79,7 @@ export default function RiskAlertsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">风险预警</h1>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100 mb-6">风险预警</h1>
       <div className="space-y-4">
         {alerts.map((alert, index) => (
           <Card key={index} title={alert.type}>
@@ -95,8 +95,8 @@ export default function RiskAlertsPage() {
                     {severityLabel(alert.severity)}
                   </span>
                 </div>
-                <p className="text-text-primary">{alert.description}</p>
-                <p className="text-sm text-text-secondary mt-1">{alert.date}</p>
+                <p className="text-text-primary dark:!text-slate-200">{alert.description}</p>
+                <p className="text-sm text-text-secondary dark:!text-slate-400 mt-1">{alert.date}</p>
               </div>
             </div>
           </Card>
