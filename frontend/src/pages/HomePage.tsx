@@ -9,7 +9,6 @@ import {
   getSettings,
 } from '../api/client'
 import StatusButton from '../components/buttons/StatusButton'
-import BigButton from '../components/buttons/BigButton'
 import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimatedOverallIcon from '../components/AnimatedOverallIcon'
@@ -733,13 +732,23 @@ export default function HomePage() {
               {successMessage}
             </div>
           )}
-          <BigButton
-            variant="success"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? '⏳ 打卡中...' : '✅ 完成打卡'}
-          </BigButton>
+          <div className="flex justify-center">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`
+                w-24 h-24 rounded-full flex items-center justify-center
+                text-lg font-bold shadow-lg shadow-black/20 leading-tight
+                transition-all duration-300 select-none px-3
+                ${isSaving
+                  ? 'bg-emerald-500/80 cursor-wait animate-pulse text-white'
+                  : 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white cursor-pointer hover:scale-110 hover:shadow-emerald-500/30 hover:shadow-xl active:scale-95'
+                }
+              `}
+            >
+              {isSaving ? '保存中...' : '保存'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
