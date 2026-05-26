@@ -1,0 +1,54 @@
+<#
+.SYNOPSIS
+  在 Windows 11 上使用 Docker 打包适用于 Ubuntu 的 go-daily 二进制
+#>
+
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+
+Write-Host "=== go-daily 跨平台打包 (Windows → Ubuntu) ===" -ForegroundColor Cyan
+Write-Host ""
+
+# 检查 Docker
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "错误: 未找到 Docker，请先安装 Docker Desktop for Windows" -ForegroundColor Red
+    exit 1
+}
+
+# 检查 Docker 是否运行
+& cmd /c "docker info" 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "错误: Docker 未运行，请启动 Docker Desktop" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "[1/2] 使用 Docker 构建 Linux 二进制..." -ForegroundColor Green
+
+# 使用 buildx 构建 Linux amd64 二进制，直接输出到 dist/
+# 多阶段构建，output type=local 会把 output 阶段的内容拷贝到本地
+docker buildx build `
+    --platform linux/amd64 `
+    --target output `
+    --output type=local,dest="$ProjectRoot\dist" `
+    -f "$ProjectRoot\Dockerfile.build" `
+    "$ProjectRoot"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "构建失败" -ForegroundColor Red
+    exit 1
+}
+
+# 确认输出
+$BinaryPath = Join-Path $ProjectRoot "dist\app"
+if (Test-Path $BinaryPath) {
+    $size = (Get-Item $BinaryPath).Length / 1MB
+    Write-Host "[2/2] 构建成功!" -ForegroundColor Green
+    Write-Host "  输出: $BinaryPath" -ForegroundColor Yellow
+    Write-Host "  大小: $('{0:N1}' -f $size) MB" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "部署到 Ubuntu:" -ForegroundColor Cyan
+    Write-Host "  1. 将 dist 目录传到 Ubuntu 服务器" -ForegroundColor White
+    Write-Host "  2. 执行: sudo bash deploy/ubuntu-deploy-dist.sh /path/to/dist" -ForegroundColor White
+} else {
+    Write-Host "错误: 未找到构建产物" -ForegroundColor Red
+    exit 1
+}

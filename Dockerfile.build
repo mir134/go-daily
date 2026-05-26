@@ -1,0 +1,19 @@
+# Build stage
+FROM node:20-bookworm AS frontend-builder
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+RUN mkdir -p backend/internal/embed/frontend/dist && npm run build
+
+# Go build stage
+FROM golang:1.21-bookworm AS go-builder
+WORKDIR /app
+COPY backend/ .
+COPY --from=frontend-builder /app/backend/internal/embed/frontend/dist ./internal/embed/frontend/dist
+RUN go build -ldflags="-s -w" -o /app/dist/app ./cmd/server/
+
+# Output
+FROM scratch AS output
+COPY --from=go-builder /app/dist/app /
+COPY config.yaml /

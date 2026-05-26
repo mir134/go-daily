@@ -47,6 +47,9 @@ make build-all      # 构建所有平台
 # cmd 命令
 
 $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o ../dist/app.exe ./cmd/server/
+
+# 打包linux
+$env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o ../dist/app ./cmd/server/
 ```
 
 ## 技术栈
