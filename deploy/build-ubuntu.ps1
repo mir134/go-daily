@@ -24,7 +24,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "[1/3] 构建前端 (vite build)..." -ForegroundColor Green
+Write-Host "[1/3] 构建前端 (vite build) ../backend/internal/embed/frontend/dist/*" -ForegroundColor Green
 $FrontendDir = Join-Path $ProjectRoot "frontend"
 Set-Location -LiteralPath $FrontendDir
 npm run build 2>&1
@@ -33,14 +33,6 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "前端构建失败" -ForegroundColor Red
     exit 1
 }
-
-# 复制前端产物到 embed 目录（给 Docker build 使用）
-$EmbedDist = Join-Path $ProjectRoot "backend\internal\embed\frontend\dist"
-if (Test-Path $EmbedDist) {
-    Remove-Item -Recurse -Force $EmbedDist
-}
-New-Item -ItemType Directory -Path $EmbedDist -Force | Out-Null
-Copy-Item -Recurse -Path (Join-Path $FrontendDir "dist\*") -Destination $EmbedDist
 
 Write-Host "[2/3] 使用 Docker 构建 Linux 二进制..." -ForegroundColor Green
 
