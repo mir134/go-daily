@@ -13,6 +13,7 @@ export default function Layout({ children, title = '家庭健康记录' }: Layou
     { path: '/', label: '首页', icon: '🏠' },
     { path: '/history', label: '历史', icon: '📜' },
     { path: '/trends', label: '趋势', icon: '📈' },
+    { path: '/ai', label: 'AI', icon: '🤖' },
     { path: '/settings', label: '设置', icon: '⚙️' },
   ]
 

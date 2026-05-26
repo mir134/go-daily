@@ -6,6 +6,7 @@ import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import LoginPage from './pages/LoginPage'
 import RiskAlertsPage from './pages/RiskAlertsPage'
+import AIAnalysisPage from './pages/AIAnalysisPage'
 
 function App() {
   return (
@@ -21,7 +22,8 @@ function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/trends" element={<TrendsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/alerts" element={<RiskAlertsPage />} />
+<Route path="/alerts" element={<RiskAlertsPage />} />
+              <Route path="/ai" element={<AIAnalysisPage />} />
             </Routes>
           </Layout>
         } />
