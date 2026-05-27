@@ -445,11 +445,11 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Section 1: 今天整体状态 */}
+      {/* Section 1: 整体状态 */}
       <section className="animate-slide-up" style={{ animationDelay: '100ms' }}>
         <h2 className="text-xl font-bold text-gray-800 dark:text-slate-100 mb-3 flex items-center gap-2">
           <span className="animate-heartbeat inline-block">{sectionIcons.overall}</span>
-          今天整体状态
+          整体状态
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {overallOptions.map((opt) => (
@@ -625,7 +625,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Section 4: 额外信息 */}
+      {/* Section 4: 测量信息 */}
       <section className="animate-slide-up" style={{ animationDelay: '250ms' }}>
         <button
           type="button"
@@ -634,7 +634,7 @@ export default function HomePage() {
         >
           <span className="flex items-center gap-2">
             <span>{sectionIcons.extra}</span>
-            额外信息
+            测量信息（血压/血糖）
             {!showExtra && (
               <span className="text-xs font-normal text-gray-400 dark:text-slate-500 ml-2">点击展开</span>
             )}
@@ -715,10 +715,11 @@ export default function HomePage() {
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
+        <div className={`mt-5 ${showExtra ? 'animate-slide-up' : ''}`} style={{ animationDelay: '300ms' }}>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-slate-100 mb-3 flex items-center gap-2">
+            <span>{sectionIcons.extra}</span>
             备注
-          </label>
+          </h2>
           <textarea
             rows={3}
             value={form.notes}
