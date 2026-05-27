@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { DailyRecord } from '../types'
 import {
@@ -13,6 +13,127 @@ import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimatedOverallIcon from '../components/AnimatedOverallIcon'
 
+function getBpZoneColor(value: number, type: 'systolic' | 'diastolic'): string {
+  if (type === 'systolic') {
+    if (!value || value < 90) return '#ef4444'
+    if (value < 120) return '#22c55e'
+    if (value < 130) return '#eab308'
+    if (value < 140) return '#f97316'
+    if (value < 180) return '#ef4444'
+    return '#b91c1c'
+  }
+  if (!value || value < 60) return '#ef4444'
+  if (value < 80) return '#22c55e'
+  if (value < 90) return '#eab308'
+  if (value < 100) return '#f97316'
+  if (value < 120) return '#ef4444'
+  return '#b91c1c'
+}
+
+const systolicGradient =
+  'linear-gradient(to right, #ef4444 0%, #ef4444 16.7%, #22c55e 16.7%, #22c55e 33.3%, #eab308 33.3%, #eab308 38.9%, #f97316 38.9%, #f97316 44.4%, #ef4444 44.4%, #ef4444 66.7%, #b91c1c 66.7%, #b91c1c 100%)'
+const diastolicGradient =
+  'linear-gradient(to right, #ef4444 0%, #ef4444 23.1%, #22c55e 23.1%, #22c55e 38.5%, #eab308 38.5%, #eab308 46.2%, #f97316 46.2%, #f97316 53.8%, #ef4444 53.8%, #ef4444 69.2%, #b91c1c 69.2%, #b91c1c 100%)'
+
+function getO2ZoneColor(value: number): string {
+  if (!value || value < 90) return '#ef4444'
+  if (value < 95) return '#f97316'
+  return '#22c55e'
+}
+
+const oxygenGradient =
+  'linear-gradient(to right, #ef4444 0%, #ef4444 33.3%, #f97316 33.3%, #f97316 66.7%, #22c55e 66.7%, #22c55e 100%)'
+
+function getSugarZoneColor(value: number): string {
+  if (!value || value < 3.9) return '#ef4444'
+  if (value < 6.1) return '#22c55e'
+  if (value < 7.0) return '#eab308'
+  if (value < 11.1) return '#f97316'
+  return '#ef4444'
+}
+
+const sugarGradient =
+  'linear-gradient(to right, #ef4444 0%, #ef4444 15.6%, #22c55e 15.6%, #22c55e 24.4%, #eab308 24.4%, #eab308 28%, #f97316 28%, #f97316 44.4%, #ef4444 44.4%, #ef4444 100%)'
+
+function getWeightGradient(dw: number): string {
+  const min = dw - 5, span = 10
+  const gs = ((dw - 1.5) - min) / span * 100
+  const ge = ((dw + 1.5) - min) / span * 100
+  return `linear-gradient(to right, #f97316 0%, #f97316 ${gs}%, #22c55e ${gs}%, #22c55e ${ge}%, #eab308 ${ge}%, #eab308 100%)`
+}
+
+function TickMarks({ min, max, steps, fmt }: { min: number; max: number; steps: number; fmt?: (v: number) => string }) {
+  const ticks: number[] = []
+  const step = (max - min) / steps
+  for (let i = 0; i <= steps; i++) ticks.push(min + step * i)
+  return (
+    <div className="flex justify-between text-[10px] text-gray-400 dark:text-slate-500 mt-0.5 select-none">
+      {ticks.map((v, i) => (
+        <span key={i}>{fmt ? fmt(v) : v % 1 === 0 ? v.toString() : v.toFixed(1)}</span>
+      ))}
+    </div>
+  )
+}
+
+interface DragSliderProps {
+  value: string
+  onChange: (v: string) => void
+  min: number
+  max: number
+  step?: number
+  className?: string
+  style?: React.CSSProperties
+}
+
+function DragSlider({ value, onChange, min, max, step, className, style }: DragSliderProps) {
+  const ref = useRef<HTMLInputElement>(null)
+  const tickCount = useRef(0)
+
+  // Sync external value when not in an active drag session
+  useEffect(() => {
+    if (ref.current && tickCount.current === 0) {
+      ref.current.value = value
+    }
+  }, [value])
+
+  return (
+    <input
+      ref={ref}
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      defaultValue={value}
+      className={`custom-slider ${className || ''}`}
+      style={style}
+      onPointerDown={() => { tickCount.current = 0 }}
+      onInput={() => {
+        tickCount.current++
+        // 2nd+ input event = dragging → commit in real-time
+        if (tickCount.current > 1 && ref.current) {
+          onChange(ref.current.value)
+        }
+      }}
+      onPointerUp={() => {
+        // 0-1 input events = tap/click → reset
+        if (tickCount.current <= 1 && ref.current) {
+          ref.current.value = value
+        }
+        tickCount.current = 0
+      }}
+    />
+  )
+}
+
+function getWeightZoneColor(value: number, dw: number): string {
+  if (!value || !dw) return '#22c55e'
+  const diff = value - dw
+  if (Math.abs(diff) <= 1.5) return '#22c55e'
+  if (diff < 0) return '#f97316'
+  if (diff <= 3) return '#eab308'
+  return '#ef4444'
+}
+
 interface FormState {
   overall_status: string
   breathing_status: string
@@ -25,6 +146,8 @@ interface FormState {
   pre_weight: string
   post_weight: string
   ultrafiltration_volume: string
+  bp_systolic: string
+  bp_diastolic: string
   blood_pressure: string
   oxygen_saturation: string
   blood_sugar: string
@@ -45,6 +168,8 @@ const initialForm: FormState = {
   pre_weight: '',
   post_weight: '',
   ultrafiltration_volume: '',
+  bp_systolic: '',
+  bp_diastolic: '',
   blood_pressure: '',
   oxygen_saturation: '',
   blood_sugar: '',
@@ -239,7 +364,14 @@ export default function HomePage() {
             pre_weight: record.pre_weight?.toString() ?? '',
             post_weight: record.post_weight?.toString() ?? '',
             ultrafiltration_volume: record.ultrafiltration_volume?.toString() ?? '',
-            blood_pressure: record.blood_pressure ?? '',
+            ...(() => {
+              const parts = (record.blood_pressure ?? '').split('/')
+              return {
+                bp_systolic: parts[0] || '',
+                bp_diastolic: parts[1] || '',
+                blood_pressure: record.blood_pressure ?? '',
+              }
+            })(),
             oxygen_saturation: record.oxygen_saturation?.toString() ?? '',
             blood_sugar: record.blood_sugar?.toString() ?? '',
             has_black_stool: record.has_black_stool ?? false,
@@ -266,7 +398,14 @@ export default function HomePage() {
             pre_weight: record.pre_weight?.toString() ?? '',
             post_weight: record.post_weight?.toString() ?? '',
             ultrafiltration_volume: record.ultrafiltration_volume?.toString() ?? '',
-            blood_pressure: record.blood_pressure ?? '',
+            ...(() => {
+              const parts = (record.blood_pressure ?? '').split('/')
+              return {
+                bp_systolic: parts[0] || '',
+                bp_diastolic: parts[1] || '',
+                blood_pressure: record.blood_pressure ?? '',
+              }
+            })(),
             oxygen_saturation: record.oxygen_saturation?.toString() ?? '',
             blood_sugar: record.blood_sugar?.toString() ?? '',
             has_black_stool: record.has_black_stool ?? false,
@@ -361,7 +500,9 @@ export default function HomePage() {
         ultrafiltration_volume: form.ultrafiltration_volume
           ? Number(form.ultrafiltration_volume)
           : null,
-        blood_pressure: form.blood_pressure,
+        blood_pressure: form.bp_systolic || form.bp_diastolic
+          ? `${form.bp_systolic || '0'}/${form.bp_diastolic || '0'}`
+          : '',
         oxygen_saturation: form.oxygen_saturation
           ? Number(form.oxygen_saturation)
           : null,
@@ -579,28 +720,74 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                   {form.dialysis_phase === 'non_dialysis' ? '当前体重 (kg)' : '透析前体重 (kg)'}
                 </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.pre_weight}
-                  onChange={(e) => updateField('pre_weight', e.target.value)}
-                  placeholder="0.0"
-                  className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
-                />
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600 dark:text-slate-400">
+                      {dryWeight ? `${dryWeight - 5} kg` : ''}
+                    </span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200 text-lg">
+                      {form.pre_weight ? `${Number(form.pre_weight).toFixed(1)} kg` : '—'}
+                    </span>
+                    <span className="text-gray-600 dark:text-slate-400">
+                      {dryWeight ? `${dryWeight + 5} kg` : ''}
+                    </span>
+                  </div>
+                  <DragSlider
+                    min={dryWeight ? dryWeight - 5 : 20}
+                    max={dryWeight ? dryWeight + 5 : 100}
+                    step={0.1}
+                    value={form.pre_weight || (dryWeight ? dryWeight.toString() : '60')}
+                    onChange={(v) => updateField('pre_weight', v)}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: dryWeight
+                        ? getWeightGradient(dryWeight)
+                        : 'linear-gradient(to right, #eab308 0%, #22c55e 50%, #eab308 100%)',
+                      accentColor: getWeightZoneColor(Number(form.pre_weight), dryWeight || 0),
+                      color: getWeightZoneColor(Number(form.pre_weight), dryWeight || 0),
+                    }}
+                  />
+                  {dryWeight && (
+                    <TickMarks min={dryWeight - 5} max={dryWeight + 5} steps={4} fmt={(v) => `${v}kg`} />
+                  )}
+                </div>
               </div>
               {form.dialysis_phase !== 'non_dialysis' && (
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                   透析后体重 (kg)
                 </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form.post_weight}
-                  onChange={(e) => updateField('post_weight', e.target.value)}
-                  placeholder={dryWeight ? dryWeight.toString() : '0.0'}
-                  className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
-                />
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600 dark:text-slate-400">
+                      {dryWeight ? `${dryWeight - 5} kg` : ''}
+                    </span>
+                    <span className="font-semibold text-gray-800 dark:text-slate-200 text-lg">
+                      {form.post_weight ? `${Number(form.post_weight).toFixed(1)} kg` : '—'}
+                    </span>
+                    <span className="text-gray-600 dark:text-slate-400">
+                      {dryWeight ? `${dryWeight + 5} kg` : ''}
+                    </span>
+                  </div>
+                  <DragSlider
+                    min={dryWeight ? dryWeight - 5 : 20}
+                    max={dryWeight ? dryWeight + 5 : 100}
+                    step={0.1}
+                    value={form.post_weight || (dryWeight ? dryWeight.toString() : '60')}
+                    onChange={(v) => updateField('post_weight', v)}
+                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: dryWeight
+                        ? getWeightGradient(dryWeight)
+                        : 'linear-gradient(to right, #eab308 0%, #22c55e 50%, #eab308 100%)',
+                      accentColor: getWeightZoneColor(Number(form.post_weight), dryWeight || 0),
+                      color: getWeightZoneColor(Number(form.post_weight), dryWeight || 0),
+                    }}
+                  />
+                  {dryWeight && (
+                    <TickMarks min={dryWeight - 5} max={dryWeight + 5} steps={4} fmt={(v) => `${v}kg`} />
+                  )}
+                </div>
               </div>
               )}
               {form.dialysis_phase !== 'non_dialysis' && (
@@ -646,47 +833,107 @@ export default function HomePage() {
 
         {showExtra && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm dark:shadow-slate-900/50 p-5 space-y-4 border border-gray-100 dark:border-slate-700">
-            <div>
+            <div className="space-y-3">
               <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                 血压
               </label>
-              <input
-                type="text"
-                value={form.blood_pressure}
-                onChange={(e) => updateField('blood_pressure', e.target.value)}
-                placeholder="120/80"
-                className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
-              />
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-slate-400">高压（收缩压）</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-200 min-w-[3ch] text-right text-lg">
+                    {form.bp_systolic || '—'}
+                  </span>
+                </div>
+                <DragSlider
+                  min={60}
+                  max={240}
+                  value={form.bp_systolic || '120'}
+                  onChange={(v) => updateField('bp_systolic', v)}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: systolicGradient,
+                    accentColor: getBpZoneColor(Number(form.bp_systolic) || 120, 'systolic'),
+                    color: getBpZoneColor(Number(form.bp_systolic) || 120, 'systolic'),
+                  }}
+                />
+                <TickMarks min={60} max={240} steps={5} />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-slate-400">低压（舒张压）</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-200 min-w-[3ch] text-right text-lg">
+                    {form.bp_diastolic || '—'}
+                  </span>
+                </div>
+                <DragSlider
+                  min={30}
+                  max={160}
+                  value={form.bp_diastolic || '80'}
+                  onChange={(v) => updateField('bp_diastolic', v)}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: diastolicGradient,
+                    accentColor: getBpZoneColor(Number(form.bp_diastolic) || 80, 'diastolic'),
+                    color: getBpZoneColor(Number(form.bp_diastolic) || 80, 'diastolic'),
+                  }}
+                />
+                <TickMarks min={30} max={160} steps={4} />
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                 血氧 (%)
               </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={form.oxygen_saturation}
-                onChange={(e) => updateField('oxygen_saturation', e.target.value)}
-                placeholder="98"
-                className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
-              />
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-slate-400">血氧饱和度</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-200 min-w-[3ch] text-right text-lg">
+                    {form.oxygen_saturation ? `${form.oxygen_saturation}%` : '—'}
+                  </span>
+                </div>
+                <DragSlider
+                  min={85}
+                  max={100}
+                  value={form.oxygen_saturation || '100'}
+                  onChange={(v) => updateField('oxygen_saturation', v)}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: oxygenGradient,
+                    accentColor: getO2ZoneColor(Number(form.oxygen_saturation) || 100),
+                    color: getO2ZoneColor(Number(form.oxygen_saturation) || 100),
+                  }}
+                />
+                <TickMarks min={85} max={100} steps={3} fmt={(v) => `${v}%`} />
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1.5">
                 血糖 (mmol/L)
               </label>
-              <input
-                type="number"
-                step="0.1"
-                min={0}
-                value={form.blood_sugar}
-                onChange={(e) => updateField('blood_sugar', e.target.value)}
-                placeholder="5.6"
-                className="w-full rounded-xl border-2 border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-base text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all duration-200"
-              />
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 dark:text-slate-400">血糖浓度</span>
+                  <span className="font-semibold text-gray-800 dark:text-slate-200 min-w-[3ch] text-right text-lg">
+                    {form.blood_sugar ? `${Number(form.blood_sugar).toFixed(1)}` : '—'}
+                  </span>
+                </div>
+                <DragSlider
+                  min={0}
+                  max={25}
+                  step={0.1}
+                  value={form.blood_sugar || '5.6'}
+                  onChange={(v) => updateField('blood_sugar', v)}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                  style={{
+                    background: sugarGradient,
+                    accentColor: getSugarZoneColor(Number(form.blood_sugar) || 5.6),
+                    color: getSugarZoneColor(Number(form.blood_sugar) || 5.6),
+                  }}
+                />
+                <TickMarks min={0} max={25} steps={5} fmt={(v) => v.toFixed(1)} />
+              </div>
             </div>
 
             <label className="flex items-center gap-3 cursor-pointer group">

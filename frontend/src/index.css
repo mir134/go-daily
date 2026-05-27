@@ -119,3 +119,41 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Custom slider: bigger triangular thumb */
+.custom-slider {
+  touch-action: manipulation;
+}
+
+.custom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 34px;
+  background: currentColor;
+  clip-path: polygon(0% 10%, 80% 10%, 40% 40%, 0% 10%, 0% 90%, 80% 90%, 40% 60%, 0% 90%);
+  border-radius: 2px;
+  cursor: grab;
+  transition: transform 0.12s ease;
+}
+
+.custom-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+}
+
+.custom-slider::-moz-range-thumb {
+  width: 30px;
+  height: 34px;
+  background: currentColor;
+  clip-path: polygon(0% 10%, 80% 10%, 40% 40%, 0% 10%, 0% 90%, 80% 90%, 40% 60%, 0% 90%);
+  border-radius: 2px;
+  cursor: grab;
+  border: none;
+  transition: transform 0.12s ease;
+}
+
+.custom-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.25);
+}
