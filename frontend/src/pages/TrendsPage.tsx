@@ -17,7 +17,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 
 
 const dialysisPhaseMap: Record<string, string> = {
-  non_dialysis: '非透析日',
+  non_dialysis: '未透析',
   hemodialysis: '血透',
   perfusion: '灌流',
   hemofiltration: '血滤',
@@ -76,7 +76,7 @@ function CustomTooltip({
       )}
       {d.eveningLabel != null && (
         <p className="font-semibold text-amber-600 dark:text-amber-400">
-          🌙 晚上: {d.eveningLabel}
+          ☀️ 下午: {d.eveningLabel}
         </p>
       )}
     </div>
@@ -235,7 +235,7 @@ export default function TrendsPage() {
             />
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="morningValue" stroke={morningColor} strokeWidth={2} dot={{ r: 3 }} name="早上" />
-            <Line type="monotone" dataKey="eveningValue" stroke={eveningColor} strokeWidth={2} dot={{ r: 3 }} name="晚上" />
+            <Line type="monotone" dataKey="eveningValue" stroke={eveningColor} strokeWidth={2} dot={{ r: 3 }} name="下午" />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -444,7 +444,7 @@ export default function TrendsPage() {
             )}
             {dayModal.evening && (
               <div className={dayModal.morning ? 'border-t border-gray-200 dark:border-slate-600 pt-4' : ''}>
-                <h3 className="text-base font-bold text-amber-600 dark:text-amber-400 mb-2">🌙 晚上</h3>
+                <h3 className="text-base font-bold text-amber-600 dark:text-amber-400 mb-2">☀️ 下午</h3>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div><span className="text-gray-500 dark:text-slate-400">整体</span><p className="font-medium">{overallEmoji[dayModal.evening.overall_status] || ''} {overallLabels[dayModal.evening.overall_status] || '未填写'}</p></div>
                   <div><span className="text-gray-500 dark:text-slate-400">呼吸</span><p className="font-medium">{breathingLabels[dayModal.evening.breathing_status] || '未填写'}</p></div>

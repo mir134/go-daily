@@ -31,6 +31,12 @@ func main() {
 	configPath := flag.String("config", "config.yaml", "配置文件路径")
 	flag.Parse()
 
+	// 固定东八区
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err == nil {
+		time.Local = loc
+	}
+
 	// 1. Load config
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {

@@ -18,10 +18,17 @@ export default function Layout({ children, title = '家庭健康记录' }: Layou
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   })
 
+  const [now, setNow] = useState(new Date())
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
     try { localStorage.setItem('health_dark_mode', String(dark)) } catch {}
   }, [dark])
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const navItems = [
     { path: '/', label: '首页', icon: '🏠' },
@@ -38,6 +45,13 @@ export default function Layout({ children, title = '家庭健康记录' }: Layou
       <header className="bg-primary dark:bg-slate-800 text-white px-4 shadow-lg sticky top-0 z-30">
         <div className="max-w-[480px] mx-auto h-14 flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-wide">{title}</h1>
+          <div className="text-sm font-semibold text-white/80 tracking-wider">
+            🕐 {(() => {
+              const p = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).formatToParts(now)
+              const g = (t: string) => p.find(x => x.type === t)?.value ?? ''
+              return `${g('month')}-${g('day')} ${g('hour')}:${g('minute')}:${g('second')}`
+            })()}
+          </div>
           <button
             onClick={() => setDark(d => !d)}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition-all duration-200 cursor-pointer active:scale-90"

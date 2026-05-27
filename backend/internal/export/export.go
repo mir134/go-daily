@@ -185,7 +185,7 @@ func mapPeriod(s string) string {
 	case models.PeriodMorning:
 		return "早上"
 	case models.PeriodEvening:
-		return "晚上"
+		return "下午"
 	default:
 		return s
 	}

@@ -104,7 +104,7 @@ const emotionOptions: StatusOption[] = [
 ]
 
 const dialysisPhaseOptions: StatusOption[] = [
-  { emoji: '📅', label: '非透析日', value: 'non_dialysis' },
+  { emoji: '📅', label: '未透析', value: 'non_dialysis' },
   { emoji: '🩸', label: '血透', value: 'hemodialysis' },
   { emoji: '💉', label: '灌流', value: 'perfusion' },
   { emoji: '🔬', label: '血滤', value: 'hemofiltration' },
@@ -201,7 +201,10 @@ export default function HomePage() {
   const [searchParams] = useSearchParams()
   const editId = searchParams.get('edit')
 
-  const [period, setPeriod] = useState<'morning' | 'evening'>('morning')
+  const [period, setPeriod] = useState<'morning' | 'evening'>(() => {
+    const h = (new Date().getUTCHours() + 8) % 24
+    return h < 12 ? 'morning' : 'evening'
+  })
   const [form, setForm] = useState<FormState>(initialForm)
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -400,8 +403,8 @@ export default function HomePage() {
           {isEditMode ? `编辑记录 #${editId}` : '📝 今日记录'}
         </h1>
         {!isEditMode && (
-          <div className="text-xs text-gray-400 dark:text-slate-500">
-            {period === 'morning' ? '🌅 早上好！' : '🌙 晚上好！'}
+          <div className="text-xl font-bold text-gray-400 dark:text-slate-500">
+            {period === 'morning' ? '🌅 早上好！' : '☀️ 下午好！'}
           </div>
         )}
       </div>
@@ -420,7 +423,8 @@ export default function HomePage() {
               : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
           }`}
         >
-          🌅 早上
+          <span>🌅 早上</span>
+          <span className="block text-sm font-bold opacity-70 mt-0.5">00:00-12:00</span>
           {!isEditMode && period !== 'morning' && otherPeriodExists && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-800" />
           )}
@@ -433,7 +437,8 @@ export default function HomePage() {
               : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
           }`}
         >
-          🌙 晚上
+          <span>☀️ 下午</span>
+          <span className="block text-sm font-bold opacity-70 mt-0.5">12:00-24:00</span>
           {!isEditMode && period !== 'evening' && otherPeriodExists && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-800" />
           )}
@@ -736,13 +741,13 @@ export default function HomePage() {
             <button
               onClick={handleSave}
               disabled={isSaving}
+              style={{ backgroundSize: '200% 200%' }}
               className={`
                 w-24 h-24 rounded-full flex items-center justify-center
-                text-lg font-bold shadow-lg shadow-black/20 leading-tight
-                transition-all duration-300 select-none px-3
+                text-lg font-bold leading-tight select-none px-3
                 ${isSaving
-                  ? 'bg-emerald-500/80 cursor-wait animate-pulse text-white'
-                  : 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white cursor-pointer hover:scale-110 hover:shadow-emerald-500/30 hover:shadow-xl active:scale-95'
+                  ? 'bg-emerald-500/80 cursor-wait animate-pulse text-white shadow-lg'
+                  : 'bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 text-white cursor-pointer shadow-lg shadow-black/20 animate-gradient-breathe hover:scale-110 hover:shadow-emerald-500/30 hover:shadow-xl active:scale-95'
                 }
               `}
             >

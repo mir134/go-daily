@@ -52,7 +52,7 @@ const emotionMap: Record<string, string> = {
 }
 
 const dialysisPhaseMap: Record<string, string> = {
-  non_dialysis: '非透析日',
+  non_dialysis: '未透析',
   hemodialysis: '血透',
   perfusion: '灌流',
   hemofiltration: '血滤',
@@ -64,7 +64,7 @@ function yesNo(value: boolean): string {
 
 const periodMap: Record<string, string> = {
   morning: '早上',
-  evening: '晚上',
+  evening: '下午',
 }
 
 function formatDate(dateString: string) {
@@ -237,7 +237,7 @@ export default function HistoryPage() {
               : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
           }`}
         >
-          🌙 晚上
+          ☀️ 下午
         </button>
       </div>
 

@@ -24,7 +24,7 @@ const breathingLabels: Record<string, string> = {
 }
 
 const phaseLabels: Record<string, string> = {
-  non_dialysis: '非透析日',
+  non_dialysis: '未透析',
   hemodialysis: '血透',
   perfusion: '灌流',
   hemofiltration: '血滤',

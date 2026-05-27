@@ -23,9 +23,14 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "错误: Docker 未运行，请启动 Docker Desktop" -ForegroundColor Red
     exit 1
 }
-
-Write-Host "[1/3] 构建前端 (vite build) ../backend/internal/embed/frontend/dist/*" -ForegroundColor Green
 $FrontendDir = Join-Path $ProjectRoot "frontend"
+$EmbedDistDir = Join-Path $ProjectRoot "backend\internal\embed\frontend\dist"
+Write-Host "[1/3] 构建前端 (vite build) $EmbedDistDir" -ForegroundColor Green
+
+if (Test-Path $EmbedDistDir) {
+    Remove-Item -Path "$EmbedDistDir\*" -Recurse -Force
+    Write-Host "已清空 $EmbedDistDir" -ForegroundColor Yellow
+}
 Set-Location -LiteralPath $FrontendDir
 npm run build 2>&1
 
