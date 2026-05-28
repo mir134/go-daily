@@ -97,7 +97,24 @@ const RANGE_OPTIONS = [
 
 type DateRange = 7 | 30 | 90
 
+function useIsDark() {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark'),
+  )
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  return isDark
+}
+
 export default function TrendsPage() {
+  const isDark = useIsDark()
   const [dateRange, setDateRange] = useState<DateRange>(30)
   const [records, setRecords] = useState<DailyRecord[]>([])
   const [alerts, setAlerts] = useState<RiskAlert[]>([])
@@ -236,15 +253,15 @@ export default function TrendsPage() {
                   <stop offset="100%" stopColor="#ef4444" />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="date" fontSize={12} tick={{ fill: '#94a3b8', angle: -45, textAnchor: 'end' }} height={60} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#cbd5e1'} />
+              <XAxis dataKey="date" fontSize={12} tick={{ fill: isDark ? '#94a3b8' : '#475569', angle: -45, textAnchor: 'end' }} height={60} />
               <YAxis
                 domain={domain}
                 ticks={ticks?.map((t) => t.value)}
                 tickFormatter={(v: number) => ticks?.find((t) => t.value === v)?.label ?? String(v)}
                 fontSize={12}
                 width={60}
-                tick={{ fill: '#94a3b8' }}
+                tick={{ fill: isDark ? '#94a3b8' : '#475569' }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="value" stroke="url(#gradient)" strokeWidth={2} dot={(props: { cx: number; cy: number; payload: CombinedPoint }) => {
