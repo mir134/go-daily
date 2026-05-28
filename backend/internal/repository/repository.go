@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -125,10 +126,13 @@ func (r *RecordRepository) ListAll() ([]models.DailyRecord, error) {
 	return records, nil
 }
 
-// ListRecent returns recent N days of DailyRecords for risk analysis
+// ListRecent returns DailyRecords from the last N days (inclusive of today).
+// Unlike the name suggests, this queries by date range, not limiting to N records.
+// This ensures all morning/evening records within the period are returned.
 func (r *RecordRepository) ListRecent(days int) ([]models.DailyRecord, error) {
 	var records []models.DailyRecord
-	result := r.db.Order("date desc").Limit(days).Find(&records)
+	cutoff := time.Now().AddDate(0, 0, -days+1).Format("2006-01-02")
+	result := r.db.Where("date >= ?", cutoff).Order("date desc").Find(&records)
 	if result.Error != nil {
 		return nil, result.Error
 	}
