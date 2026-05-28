@@ -264,15 +264,17 @@ export default function TrendsPage() {
                 tick={{ fill: isDark ? '#94a3b8' : '#475569' }}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="value" stroke="url(#gradient)" strokeWidth={2} dot={(props: { cx: number; cy: number; payload: CombinedPoint }) => {
+              <Line type="monotone" dataKey="value" stroke="url(#gradient)" strokeWidth={2} dot={(props: { cx?: number; cy?: number; payload: CombinedPoint }) => {
+                const cx = props.cx ?? 0
+                const cy = props.cy ?? 0
                 const isDialysis = !!props.payload.dialysisLabel
                 return isDialysis ? (
                   <g>
-                    <circle cx={props.cx} cy={props.cy} r={7} fill="#ef4444" stroke="#fff" strokeWidth={2} />
-                    <text x={props.cx} y={props.cy + 1} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={9} fontWeight="bold">透</text>
+                    <circle cx={cx} cy={cy} r={7} fill="#ef4444" stroke="#fff" strokeWidth={2} />
+                    <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={9} fontWeight="bold">透</text>
                   </g>
                 ) : (
-                  <circle cx={props.cx} cy={props.cy} r={3} fill="#0ea5e9" />
+                  <circle cx={cx} cy={cy} r={3} fill="#0ea5e9" />
                 )
               }} name="记录" />
               {referenceLine && (
