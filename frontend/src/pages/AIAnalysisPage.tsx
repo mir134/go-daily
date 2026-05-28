@@ -105,10 +105,20 @@ function TrendRow({
   )
 }
 
+const periodLabels: Record<string, string> = {
+  morning: '上午',
+  evening: '下午',
+}
+
 function RecordRow({ record }: { record: RecordSummary }) {
   return (
     <tr className="border-b border-gray-100 dark:border-slate-700 last:border-0">
-      <td className="py-2 text-sm text-gray-600 dark:text-slate-400">{record.date}</td>
+      <td className="py-2 text-sm text-gray-600 dark:text-slate-400 whitespace-nowrap">
+        {record.date}
+        <span className="ml-1 text-xs text-gray-400 dark:text-slate-500">
+          {labelFor(record.period, periodLabels)}
+        </span>
+      </td>
       <td className="py-2 text-sm text-gray-800 dark:text-slate-200">
         {labelFor(record.overall_status, overallLabels)}
       </td>
@@ -275,6 +285,9 @@ export default function AIAnalysisPage() {
                 >
                   透析日状态改善 {summary.dialysis_analysis.improving ? '是 ✅' : '否'}
                 </p>
+                <p className="text-gray-600 dark:text-slate-400">
+                  透析后连续改善次数: {summary.dialysis_analysis.post_dialysis_improvement_count}
+                </p>
               </div>
             </div>
 
@@ -325,8 +338,8 @@ export default function AIAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {context.recent_records.map((record, i) => (
-                  <RecordRow key={record.date ?? i} record={record} />
+                {context.recent_records.map((record) => (
+                  <RecordRow key={`${record.date}-${record.period}`} record={record} />
                 ))}
               </tbody>
             </table>

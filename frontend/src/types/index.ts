@@ -82,6 +82,7 @@ export interface DialysisAnalysis {
   dialysis_days_count: number
   types: string[]
   improving: boolean
+  post_dialysis_improvement_count: number
 }
 
 export interface NutritionAnalysis {
@@ -102,6 +103,7 @@ export interface PatientProfile {
 
 export interface RecordSummary {
   date: string
+  period: string
   overall_status: string
   breathing_status: string
   appetite_status: string
