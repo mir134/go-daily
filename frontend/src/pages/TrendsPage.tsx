@@ -3,6 +3,7 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  ReferenceLine,
   XAxis,
   YAxis,
   Tooltip,
@@ -10,7 +11,7 @@ import {
 } from 'recharts'
 import { format, subDays, addDays, getDay } from 'date-fns'
 import type { DailyRecord, RiskAlert } from '../types'
-import { getRecords, getAlerts } from '../api/client'
+import { getRecords, getAlerts, getSettings } from '../api/client'
 import Card from '../components/Card'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -51,10 +52,10 @@ const mentalLabels: Record<string, string> = { chatty: '能聊天', listless: '�
 
 interface CombinedPoint {
   date: string
-  morningValue?: number
-  morningLabel?: string
-  eveningValue?: number
-  eveningLabel?: string
+  fullDate: string
+  value?: number
+  label?: string
+  dialysisLabel?: string
 }
 
 function CustomTooltip({
@@ -68,15 +69,15 @@ function CustomTooltip({
   const d = payload[0].payload
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg dark:shadow-slate-900/50 p-3 border border-gray-100 dark:border-slate-700 text-sm space-y-1">
-      <p className="text-gray-500 dark:text-slate-400">{d.date}</p>
-      {d.morningLabel != null && (
-        <p className="font-semibold text-emerald-600 dark:text-emerald-400">
-          🌅 早上: {d.morningLabel}
+      <p className="text-gray-500 dark:text-slate-400">{d.fullDate}</p>
+      {d.label != null && (
+        <p className="font-semibold text-sky-600 dark:text-sky-400">
+          {d.label}
         </p>
       )}
-      {d.eveningLabel != null && (
-        <p className="font-semibold text-amber-600 dark:text-amber-400">
-          ☀️ 下午: {d.eveningLabel}
+      {d.dialysisLabel != null && (
+        <p className="text-red-500 dark:text-red-400 text-xs font-medium">
+          💉 {d.dialysisLabel}
         </p>
       )}
     </div>
@@ -100,6 +101,7 @@ export default function TrendsPage() {
   const [dateRange, setDateRange] = useState<DateRange>(30)
   const [records, setRecords] = useState<DailyRecord[]>([])
   const [alerts, setAlerts] = useState<RiskAlert[]>([])
+  const [dryWeight, setDryWeight] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [dayModal, setDayModal] = useState<{ date: string; morning?: DailyRecord; evening?: DailyRecord } | null>(null)
 
@@ -107,12 +109,15 @@ export default function TrendsPage() {
     const load = async () => {
       setLoading(true)
       try {
-        const [recordsRes, alertsData] = await Promise.all([
+        const [recordsRes, alertsData, settings] = await Promise.all([
           getRecords(1, dateRange * 2),
           getAlerts(),
+          getSettings(),
         ])
         setRecords(recordsRes.data)
         setAlerts(alertsData)
+        const dw = parseFloat(settings.dry_weight)
+        setDryWeight(isNaN(dw) ? null : dw)
       } catch {
       } finally {
         setLoading(false)
@@ -122,11 +127,23 @@ export default function TrendsPage() {
   }, [dateRange])
 
   const filteredRecords = useMemo(() => {
+    const periodOrder = { morning: 0, evening: 1 } as const
     const startDate = subDays(new Date(), dateRange)
     return records
       .filter((r) => new Date(r.date) >= startDate)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => {
+        const da = new Date(a.date).getTime()
+        const db = new Date(b.date).getTime()
+        if (da !== db) return da - db
+        return periodOrder[a.period as keyof typeof periodOrder] - periodOrder[b.period as keyof typeof periodOrder]
+      })
   }, [records, dateRange])
+
+  const periodLabel: Record<string, string> = { morning: '上午', evening: '下午' }
+
+  function getDialysisLabel(r: DailyRecord): string | undefined {
+    return r.dialysis_phase !== 'non_dialysis' ? (dialysisPhaseMap[r.dialysis_phase] || r.dialysis_phase) : undefined
+  }
 
   function toCombined(
     records: DailyRecord[],
@@ -134,52 +151,38 @@ export default function TrendsPage() {
     valueMap: Record<string, number>,
     labelMap: Record<string, string>,
   ): CombinedPoint[] {
-    const map = new Map<string, { morningValue?: number; morningLabel?: string; eveningValue?: number; eveningLabel?: string }>()
-    const dateKey = (r: DailyRecord) => format(new Date(r.date), 'MM/dd')
+    const points: CombinedPoint[] = []
     for (const r of records) {
       const raw = r[field]
       if (typeof raw !== 'string' || !(raw in valueMap)) continue
-      const key = dateKey(r)
-      const entry = map.get(key) ?? {}
-      const numericVal = valueMap[raw]!
-      const label = labelMap[raw] ?? raw
-      if (r.period === 'evening') {
-        entry.eveningValue = numericVal
-        entry.eveningLabel = label
-      } else {
-        entry.morningValue = numericVal
-        entry.morningLabel = label
-      }
-      map.set(key, entry)
+      points.push({
+        date: `${format(new Date(r.date), 'd')}/${periodLabel[r.period] ?? ''}`,
+        fullDate: `${r.date} ${periodLabel[r.period] ?? ''}`,
+        value: valueMap[raw]!,
+        label: labelMap[raw] ?? raw,
+        dialysisLabel: getDialysisLabel(r),
+      })
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, vals]) => ({ date, ...vals }))
+    return points
   }
 
   function toCombinedWeight(
     records: DailyRecord[],
     weightField: keyof DailyRecord,
   ): CombinedPoint[] {
-    const map = new Map<string, { morningValue?: number; morningLabel?: string; eveningValue?: number; eveningLabel?: string }>()
-    const dateKey = (r: DailyRecord) => format(new Date(r.date), 'MM/dd')
+    const points: CombinedPoint[] = []
     for (const r of records) {
       const raw = r[weightField] as number | null
       if (raw == null) continue
-      const key = dateKey(r)
-      const entry = map.get(key) ?? {}
-      if (r.period === 'evening') {
-        entry.eveningValue = raw
-        entry.eveningLabel = `${raw} kg`
-      } else {
-        entry.morningValue = raw
-        entry.morningLabel = `${raw} kg`
-      }
-      map.set(key, entry)
+      points.push({
+        date: `${format(new Date(r.date), 'd')}/${periodLabel[r.period] ?? ''}`,
+        fullDate: `${r.date} ${periodLabel[r.period] ?? ''}`,
+        value: raw,
+        label: `${raw} kg`,
+        dialysisLabel: getDialysisLabel(r),
+      })
     }
-    return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, vals]) => ({ date, ...vals }))
+    return points
   }
 
   const appetiteData: CombinedPoint[] = useMemo(
@@ -210,7 +213,7 @@ export default function TrendsPage() {
     [filteredRecords],
   )
 
-  function renderLineChart(data: CombinedPoint[], morningColor: string, eveningColor: string, ticks?: TickConfig[]) {
+  function renderLineChart(data: CombinedPoint[], _color: string, ticks?: TickConfig[], referenceLine?: { value: number; label: string }) {
     if (!data.length) {
       return <p className="text-gray-400 dark:text-slate-500 text-center py-8">暂无数据</p>
     }
@@ -219,25 +222,48 @@ export default function TrendsPage() {
       ? [ticks[0].value, ticks[ticks.length - 1].value]
       : ['auto', 'auto']
 
+    const chartMinWidth = Math.max(data.length * 40, 400)
+
     return (
       <div className="overflow-x-auto">
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="date" fontSize={12} tick={{ fill: '#94a3b8' }} />
-            <YAxis
-              domain={domain}
-              ticks={ticks?.map((t) => t.value)}
-              tickFormatter={(v: number) => ticks?.find((t) => t.value === v)?.label ?? String(v)}
-              fontSize={12}
-              width={60}
-              tick={{ fill: '#94a3b8' }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Line type="monotone" dataKey="morningValue" stroke={morningColor} strokeWidth={2} dot={{ r: 3 }} name="早上" />
-            <Line type="monotone" dataKey="eveningValue" stroke={eveningColor} strokeWidth={2} dot={{ r: 3 }} name="下午" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{ width: `${chartMinWidth}px`, minWidth: '100%' }}>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={data}>
+              <defs>
+                <linearGradient id="gradient" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#eab308" />
+                  <stop offset="100%" stopColor="#ef4444" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="date" fontSize={12} tick={{ fill: '#94a3b8', angle: -45, textAnchor: 'end' }} height={60} />
+              <YAxis
+                domain={domain}
+                ticks={ticks?.map((t) => t.value)}
+                tickFormatter={(v: number) => ticks?.find((t) => t.value === v)?.label ?? String(v)}
+                fontSize={12}
+                width={60}
+                tick={{ fill: '#94a3b8' }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="value" stroke="url(#gradient)" strokeWidth={2} dot={(props: { cx: number; cy: number; payload: CombinedPoint }) => {
+                const isDialysis = !!props.payload.dialysisLabel
+                return isDialysis ? (
+                  <g>
+                    <circle cx={props.cx} cy={props.cy} r={7} fill="#ef4444" stroke="#fff" strokeWidth={2} />
+                    <text x={props.cx} y={props.cy + 1} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={9} fontWeight="bold">透</text>
+                  </g>
+                ) : (
+                  <circle cx={props.cx} cy={props.cy} r={3} fill="#0ea5e9" />
+                )
+              }} name="记录" />
+              {referenceLine && (
+                <ReferenceLine y={referenceLine.value} stroke="#ef4444" strokeDasharray="6 3" label={referenceLine.label} />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     )
   }
@@ -365,8 +391,12 @@ export default function TrendsPage() {
         )}
       </Card>
 
+      <Card title="体重趋势">
+        {renderLineChart(weightData, '#0ea5e9', undefined, dryWeight != null ? { value: dryWeight, label: `干体重 ${dryWeight} kg` } : undefined)}
+      </Card>
+
       <Card title="食欲趋势">
-        {renderLineChart(appetiteData, '#10b981', '#f59e0b', [
+        {renderLineChart(appetiteData, '#0ea5e9', [
           { value: 1, label: '吃得好' },
           { value: 2, label: '吃一点' },
           { value: 3, label: '吃不下' },
@@ -374,19 +404,15 @@ export default function TrendsPage() {
       </Card>
 
       <Card title="呼吸趋势">
-        {renderLineChart(breathingData, '#10b981', '#f59e0b', [
+        {renderLineChart(breathingData, '#0ea5e9', [
           { value: 1, label: '不喘' },
           { value: 2, label: '走路喘' },
           { value: 3, label: '坐着也喘' },
         ])}
       </Card>
 
-      <Card title="体重趋势">
-        {renderLineChart(weightData, '#10b981', '#f59e0b')}
-      </Card>
-
       <Card title="呕吐趋势">
-        {renderLineChart(vomitData, '#10b981', '#f59e0b', [
+        {renderLineChart(vomitData, '#0ea5e9', [
           { value: 0, label: '没有' },
           { value: 1, label: '恶心' },
           { value: 2, label: '呕吐' },
@@ -395,7 +421,7 @@ export default function TrendsPage() {
       </Card>
 
       <Card title="平躺能力趋势">
-        {renderLineChart(sleepData, '#10b981', '#f59e0b', [
+        {renderLineChart(sleepData, '#0ea5e9', [
           { value: 1, label: '能' },
           { value: 2, label: '半躺' },
           { value: 3, label: '不能' },
