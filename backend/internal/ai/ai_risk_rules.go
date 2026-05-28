@@ -43,9 +43,10 @@ type PatientStatus struct {
 
 // DialysisAnalysis captures dialysis treatment analysis.
 type DialysisAnalysis struct {
-	DialysisDaysCount int      `json:"dialysis_days_count"`
-	Types             []string `json:"types"`
-	Improving         bool     `json:"improving"`
+	DialysisDaysCount            int      `json:"dialysis_days_count"`
+	Types                        []string `json:"types"`
+	Improving                    bool     `json:"improving"`
+	PostDialysisImprovementCount int      `json:"post_dialysis_improvement_count"`
 }
 
 // NutritionAnalysis tracks the appetite trend over time.
@@ -69,6 +70,7 @@ type PatientProfile struct {
 // RecordSummary is a condensed view of a single record for display.
 type RecordSummary struct {
 	Date            string `json:"date"`
+	Period          string `json:"period"`
 	OverallStatus   string `json:"overall_status"`
 	BreathingStatus string `json:"breathing_status"`
 	AppetiteStatus  string `json:"appetite_status"`
@@ -246,6 +248,12 @@ func (e *RiskEngine) AnalyzeTrend(records []models.DailyRecord, valueMap map[str
 	return "unstable"
 }
 
+// compositeScore calculates a sum of appetite+breathing+sleep numeric values.
+// Lower score = better condition.
+func compositeScore(r *models.DailyRecord) int {
+	return AppetiteValues[r.AppetiteStatus] + BreathingValues[r.BreathingStatus] + SleepValues[r.SleepPosition]
+}
+
 // AnalyzeDialysis compares pre/post dialysis status across records.
 // Returns whether pre-dialysis is worsening and post-dialysis is improving.
 func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnalysis {
@@ -258,7 +266,18 @@ func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnaly
 	dayScores := []dayScore{}
 	seenDates := map[string]bool{}
 
-	for _, r := range records {
+	// Sort all records chronologically for streak analysis
+	allSorted := make([]models.DailyRecord, len(records))
+	copy(allSorted, records)
+	sort.Slice(allSorted, func(i, j int) bool {
+		if allSorted[i].Date != allSorted[j].Date {
+			return allSorted[i].Date < allSorted[j].Date
+		}
+		// morning before evening
+		return allSorted[i].Period == "morning"
+	})
+
+	for _, r := range allSorted {
 		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
 			continue
 		}
@@ -271,7 +290,7 @@ func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnaly
 
 	// Build one composite score per dialysis day (prefer morning record)
 	dayMap := map[string]models.DailyRecord{}
-	for _, r := range records {
+	for _, r := range allSorted {
 		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
 			continue
 		}
@@ -286,8 +305,7 @@ func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnaly
 	sort.Strings(dates)
 	for _, date := range dates {
 		r := dayMap[date]
-		score := AppetiteValues[r.AppetiteStatus] + BreathingValues[r.BreathingStatus] + SleepValues[r.SleepPosition]
-		dayScores = append(dayScores, dayScore{date: date, score: score})
+		dayScores = append(dayScores, dayScore{date: date, score: compositeScore(&r)})
 	}
 
 	for t := range typeSet {
@@ -298,6 +316,34 @@ func (e *RiskEngine) AnalyzeDialysis(records []models.DailyRecord) DialysisAnaly
 	if len(dayScores) >= 2 && dayScores[len(dayScores)-1].score < dayScores[0].score {
 		result.Improving = true
 	}
+
+	// ── Post-dialysis consecutive improvement count ──
+	// After each dialysis session, count how many consecutive subsequent records
+	// have a lower (better) composite score than the dialysis record itself.
+	// "半天" = same-day afternoon after morning dialysis
+	// "多天" = multiple days following dialysis
+	maxStreak := 0
+	for i := 0; i < len(allSorted); i++ {
+		r := allSorted[i]
+		if r.DialysisPhase == models.DialysisPhaseNonDialysis || r.DialysisPhase == "" {
+			continue
+		}
+		dialysisScore := compositeScore(&r)
+		streak := 0
+		for j := i + 1; j < len(allSorted); j++ {
+			post := allSorted[j]
+			postScore := compositeScore(&post)
+			if postScore < dialysisScore {
+				streak++
+			} else {
+				break
+			}
+		}
+		if streak > maxStreak {
+			maxStreak = streak
+		}
+	}
+	result.PostDialysisImprovementCount = maxStreak
 
 	return result
 }

@@ -70,11 +70,13 @@ func (s *AIService) GetContext() (*ContextResult, error) {
 		return sorted[i].Date < sorted[j].Date
 	})
 
-	// Build recent records summary
+	// Build recent records summary (newest first for frontend display)
 	recentRecords := make([]RecordSummary, 0, len(sorted))
-	for _, r := range sorted {
+	for i := len(sorted) - 1; i >= 0; i-- {
+		r := sorted[i]
 		recentRecords = append(recentRecords, RecordSummary{
 			Date:            r.Date,
+			Period:          r.Period,
 			OverallStatus:   r.OverallStatus,
 			BreathingStatus: r.BreathingStatus,
 			AppetiteStatus:  r.AppetiteStatus,
