@@ -30,6 +30,10 @@ export default function Layout({ children, title = '家庭健康记录' }: Layou
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   const navItems = [
     { path: '/', label: '首页', icon: '🏠' },
     { path: '/history', label: '历史', icon: '📜' },
