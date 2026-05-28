@@ -10,6 +10,7 @@ type Settings struct {
 	BasicInfo       string `json:"basic_info"`
 	DialysisEnabled bool   `json:"dialysis_enabled"`
 	DryWeight       string `json:"dry_weight"`
+	Notes           string `json:"notes"`
 }
 
 // ConfigService handles business logic for app configuration.
@@ -28,12 +29,14 @@ func (s *ConfigService) GetSettings() (*Settings, error) {
 	basicInfo, _ := s.repo.Get("basic_info")
 	dialysisStr, _ := s.repo.Get("dialysis_enabled")
 	dryWeight, _ := s.repo.Get("dry_weight")
+	notes, _ := s.repo.Get("notes")
 
 	return &Settings{
 		PatientName:     patientName,
 		BasicInfo:       basicInfo,
 		DialysisEnabled: dialysisStr == "true",
 		DryWeight:       dryWeight,
+		Notes:           notes,
 	}, nil
 }
 
@@ -53,6 +56,9 @@ func (s *ConfigService) SaveSettings(settings *Settings) error {
 		return err
 	}
 	if err := s.repo.Set("dry_weight", settings.DryWeight); err != nil {
+		return err
+	}
+	if err := s.repo.Set("notes", settings.Notes); err != nil {
 		return err
 	}
 	return nil

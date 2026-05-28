@@ -5,7 +5,6 @@ import { exportRecords, getSettings, saveSettings } from '../api/client'
 import type { AppSettings } from '../types'
 import Card from '../components/Card'
 import BigButton from '../components/buttons/BigButton'
-import ConfirmDialog from '../components/ConfirmDialog'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -15,7 +14,7 @@ export default function SettingsPage() {
   const [basicInfo, setBasicInfo] = useState('')
   const [dialysisEnabled, setDialysisEnabled] = useState(false)
   const [dryWeight, setDryWeight] = useState('')
-  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -24,6 +23,7 @@ export default function SettingsPage() {
       setBasicInfo(s.basic_info)
       setDialysisEnabled(s.dialysis_enabled)
       setDryWeight(s.dry_weight)
+      setNotes(s.notes ?? '')
     })
   }, [])
 
@@ -33,6 +33,7 @@ export default function SettingsPage() {
       basic_info: basicInfo,
       dialysis_enabled: dialysisEnabled,
       dry_weight: dryWeight,
+      notes: notes,
     }
     await saveSettings(settings)
     setSaved(true)
@@ -51,10 +52,6 @@ export default function SettingsPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch {}
-  }
-
-  const handleClear = () => {
-    setClearDialogOpen(false)
   }
 
   const handleLogout = async () => {
@@ -135,10 +132,17 @@ export default function SettingsPage() {
           <BigButton onClick={handleExport} variant="primary">
             导出全部数据
           </BigButton>
-          <BigButton onClick={() => setClearDialogOpen(true)} variant="danger">
-            清空全部数据
-          </BigButton>
         </div>
+      </Card>
+
+      <Card title="备注" className="mb-4">
+        <textarea
+          rows={4}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="用于在 AI 分析页面底部显示的备注信息，支持换行"
+          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all resize-none"
+        />
       </Card>
 
       <Card title="关于" className="mb-4">
@@ -165,14 +169,6 @@ export default function SettingsPage() {
         </BigButton>
       </div>
 
-      <ConfirmDialog
-        isOpen={clearDialogOpen}
-        onConfirm={handleClear}
-        onCancel={() => setClearDialogOpen(false)}
-        title="清空数据"
-        message="此操作不可恢复！清空所有记录数据？"
-        confirmText="确认清空"
-      />
     </div>
   )
 }

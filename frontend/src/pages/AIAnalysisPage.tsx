@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getAISummary, getAIContext, getAIRiskScore } from '../api/client'
+import { getAISummary, getAIContext, getAIRiskScore, getSettings } from '../api/client'
 import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { SummaryResult, ContextResult, RiskScoreResult, RecordSummary } from '../types'
@@ -136,6 +136,7 @@ export default function AIAnalysisPage() {
   const [summary, setSummary] = useState<SummaryResult | null>(null)
   const [context, setContext] = useState<ContextResult | null>(null)
   const [riskScore, setRiskScore] = useState<RiskScoreResult | null>(null)
+  const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -143,14 +144,16 @@ export default function AIAnalysisPage() {
     setLoading(true)
     setError(false)
     try {
-      const [s, c, r] = await Promise.all([
+      const [s, c, r, settings] = await Promise.all([
         getAISummary(),
         getAIContext(),
         getAIRiskScore(),
+        getSettings(),
       ])
       setSummary(s)
       setContext(c)
       setRiskScore(r)
+      setNotes(settings.notes ?? '')
     } catch {
       setError(true)
     } finally {
@@ -348,6 +351,14 @@ export default function AIAnalysisPage() {
           <p className="text-gray-400 dark:text-slate-500 text-sm py-2">暂无近期记录</p>
         )}
       </Card>
+
+      {notes && (
+        <Card title="备注">
+          <p className="text-gray-700 dark:text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">
+            {notes}
+          </p>
+        </Card>
+      )}
     </div>
   )
 }

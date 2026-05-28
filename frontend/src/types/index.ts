@@ -31,6 +31,7 @@ export interface AppSettings {
   basic_info: string
   dialysis_enabled: boolean
   dry_weight: string
+  notes: string
 }
 
 export interface AppConfig {
