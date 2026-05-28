@@ -121,6 +121,16 @@ export default function SettingsPage() {
         )}
       </Card>
 
+      <Card title="备注" className="mb-4">
+        <textarea
+          rows={4}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="用于在 AI 分析页面底部显示的备注信息，支持换行"
+          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all resize-none"
+        />
+      </Card>
+
       <div className="mb-4">
         <BigButton onClick={handleSave} variant="primary">
           {saved ? '已保存 ✅' : '保存设置'}
@@ -133,16 +143,6 @@ export default function SettingsPage() {
             导出全部数据
           </BigButton>
         </div>
-      </Card>
-
-      <Card title="备注" className="mb-4">
-        <textarea
-          rows={4}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="用于在 AI 分析页面底部显示的备注信息，支持换行"
-          className="w-full rounded-xl p-4 text-base border-2 border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 focus:border-primary dark:focus:border-primary-light focus:outline-none transition-all resize-none"
-        />
       </Card>
 
       <Card title="关于" className="mb-4">
